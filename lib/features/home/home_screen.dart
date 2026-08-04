@@ -1,43 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../core/widgets/app_text_field.dart';
-import '../../core/widgets/error_message.dart';
-import '../../core/widgets/loading_indicator.dart';
+import '../../core/router/app_router.dart';
 import '../../core/widgets/primary_button.dart';
 
-/// Temporary home screen demonstrating core UI components.
-class HomeScreen extends StatefulWidget {
+/// Temporary home screen with navigation entry points.
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  final _nameController = TextEditingController();
-  bool _showLoading = false;
-  bool _showError = false;
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
-  }
-
-  void _onPrimaryPressed() {
-    setState(() {
-      _showLoading = true;
-      _showError = false;
-    });
-
-    Future<void>.delayed(const Duration(seconds: 1), () {
-      if (!mounted) return;
-      setState(() {
-        _showLoading = false;
-        _showError = true;
-      });
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,28 +40,25 @@ class _HomeScreenState extends State<HomeScreen> {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 32),
-                      AppTextField(
-                        controller: _nameController,
-                        labelText: 'Your name',
-                        hintText: 'Enter your name',
-                        textInputAction: TextInputAction.done,
-                      ),
-                      const SizedBox(height: 24),
                       PrimaryButton(
-                        label: 'Get started',
-                        isLoading: _showLoading,
-                        onPressed: _onPrimaryPressed,
+                        label: 'Login',
+                        onPressed: () => context.go(AppRoutes.login),
                       ),
-                      const SizedBox(height: 32),
-                      if (_showLoading)
-                        const LoadingIndicator(message: 'Loading…'),
-                      if (_showError)
-                        ErrorMessage(
-                          message: 'Something went wrong. Please try again.',
-                          onRetry: () {
-                            setState(() => _showError = false);
-                          },
-                        ),
+                      const SizedBox(height: 12),
+                      PrimaryButton(
+                        label: 'Registration',
+                        onPressed: () => context.go(AppRoutes.register),
+                      ),
+                      const SizedBox(height: 12),
+                      PrimaryButton(
+                        label: 'Owner dashboard',
+                        onPressed: () => context.go(AppRoutes.owner),
+                      ),
+                      const SizedBox(height: 12),
+                      PrimaryButton(
+                        label: 'Sitter dashboard',
+                        onPressed: () => context.go(AppRoutes.sitterDashboard),
+                      ),
                     ],
                   ),
                 ),
