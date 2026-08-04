@@ -1,0 +1,51 @@
+---
+description: PawPal Flutter MVP project rules
+alwaysApply: true
+---
+
+# PawPal MVP
+
+PawPal is a university application connecting pet owners with pet sitters.
+
+## Supported platforms
+
+- Android
+- Flutter web
+
+Every feature must work on both platforms.
+
+## Technology
+
+- Flutter and Dart
+- Material 3
+- Supabase
+- Riverpod
+- GoRouter
+- flutter_map with OpenStreetMap
+
+## Development rules
+
+- Implement only the current ticket.
+- Do not add unrequested features.
+- Do not modify unrelated files.
+- Do not install packages without permission.
+- Keep the application as an MVP.
+- Use simple feature-based folders.
+- Reuse existing widgets.
+- Use null-safe Dart.
+- Use responsive layouts for Android and web.
+- Avoid fixed widths that cause web or mobile overflow.
+- Avoid platform-specific code unless necessary.
+- Never expose Supabase secret or service-role keys.
+- Use suburb-level sitter locations, not exact home addresses.
+- Stop after completing the current ticket.
+
+## Completion checks
+
+After every ticket:
+
+1. Run `dart format .`
+2. Run `flutter analyze`
+3. Test using Chrome
+4. Test using the Android emulator
+5. Report unresolved errors
