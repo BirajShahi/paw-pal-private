@@ -23,16 +23,18 @@ Future<void> main() async {
   runApp(const ProviderScope(child: PawPalApp()));
 }
 
-class PawPalApp extends StatelessWidget {
+class PawPalApp extends ConsumerWidget {
   const PawPalApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(goRouterProvider);
+
     return MaterialApp.router(
       title: 'PawPal',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      routerConfig: appRouter,
+      routerConfig: router,
     );
   }
 }

@@ -30,6 +30,7 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> {
 
     try {
       await ref.read(authRepositoryProvider).logOut();
+      ref.invalidate(currentUserRoleProvider);
       if (!mounted) return;
       context.go(AppRoutes.login);
     } catch (_) {
