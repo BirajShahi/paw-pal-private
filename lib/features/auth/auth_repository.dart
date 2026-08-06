@@ -4,6 +4,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'auth_role.dart';
 
+/// Thrown when the signed-in user's profile or role cannot be resolved.
+class ProfileRoleException implements Exception {
+  const ProfileRoleException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
 /// Thin Supabase authentication wrapper.
 ///
 /// [AuthException] from Supabase is left uncaught for the UI to handle.
@@ -54,5 +64,38 @@ class AuthRepository {
 
   Future<void> logOut() {
     return _client.auth.signOut();
+  }
+
+  /// Reads the signed-in user's role from `public.profiles`.
+  ///
+  /// Only `owner` and `sitter` are accepted.
+  Future<AuthRole> getCurrentUserRole() async {
+    final user = currentUser;
+    if (user == null) {
+      throw const ProfileRoleException(
+        'You are not signed in. Please log in again.',
+      );
+    }
+
+    final row = await _client
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    if (row == null) {
+      throw const ProfileRoleException(
+        'Your profile could not be found. Please contact support.',
+      );
+    }
+
+    final role = AuthRole.tryParse(row['role'] as String?);
+    if (role == null) {
+      throw const ProfileRoleException(
+        'Your account role is missing or unsupported. Please contact support.',
+      );
+    }
+
+    return role;
   }
 }
