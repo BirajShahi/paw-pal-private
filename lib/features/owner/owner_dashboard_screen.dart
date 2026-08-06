@@ -72,6 +72,13 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 32),
+                    PrimaryButton(
+                      label: 'Profile',
+                      onPressed: _isLoggingOut
+                          ? null
+                          : () => context.go(AppRoutes.profile),
+                    ),
+                    const SizedBox(height: 12),
                     if (_errorMessage != null) ...[
                       ErrorMessage(message: _errorMessage!),
                       const SizedBox(height: 16),

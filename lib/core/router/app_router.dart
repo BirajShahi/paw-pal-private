@@ -13,6 +13,7 @@ import '../../features/map/nearby_sitters_map_screen.dart';
 import '../../features/owner/owner_dashboard_screen.dart';
 import '../../features/owner/owner_shell.dart';
 import '../../features/pets/pet_list_screen.dart';
+import '../../features/profile/owner_profile_screen.dart';
 import '../../features/sitter/sitter_dashboard_screen.dart';
 import '../../features/sitters/sitter_list_screen.dart';
 
@@ -28,6 +29,7 @@ abstract final class AppRoutes {
   static const bookings = '/bookings';
   static const sitterDashboard = '/sitter-dashboard';
   static const accountSetup = '/account-setup';
+  static const profile = '/profile';
 }
 
 const _publicRoutes = <String>{
@@ -42,6 +44,7 @@ const _ownerRoutes = <String>{
   AppRoutes.sitters,
   AppRoutes.map,
   AppRoutes.bookings,
+  AppRoutes.profile,
 };
 
 const _sitterRoutes = <String>{AppRoutes.sitterDashboard};
@@ -82,6 +85,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.sitterDashboard,
         builder: (context, state) => const SitterDashboardScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.profile,
+        builder: (context, state) => const OwnerProfileScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
