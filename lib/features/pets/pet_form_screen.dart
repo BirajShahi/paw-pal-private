@@ -7,6 +7,7 @@ import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/error_message.dart';
 import '../../core/widgets/loading_indicator.dart';
 import '../../core/widgets/primary_button.dart';
+import 'pet_delete_confirmation.dart';
 import 'pet_model.dart';
 import 'pet_providers.dart';
 import 'pet_repository.dart';
@@ -38,6 +39,8 @@ class _PetFormScreenState extends ConsumerState<PetFormScreen> {
   bool _fieldsInitialised = false;
   bool _isSaving = false;
   String? _saveError;
+
+  bool get _isBusy => _isSaving;
 
   @override
   void dispose() {
@@ -71,7 +74,7 @@ class _PetFormScreenState extends ConsumerState<PetFormScreen> {
   }
 
   Future<void> _save() async {
-    if (_isSaving) return;
+    if (_isBusy) return;
 
     setState(() => _saveError = null);
 
@@ -142,6 +145,37 @@ class _PetFormScreenState extends ConsumerState<PetFormScreen> {
     }
   }
 
+  Future<void> _deletePet() async {
+    if (_isBusy || !widget.isEditing) return;
+
+    final petName = _nameController.text.trim().isEmpty
+        ? 'this pet'
+        : _nameController.text.trim();
+    final petId = widget.petId!;
+
+    setState(() => _saveError = null);
+
+    final deleted = await showDeletePetConfirmationDialog(
+      context,
+      petName: petName,
+      onConfirmed: () => ref.read(petRepositoryProvider).deletePet(petId),
+    );
+
+    if (!deleted || !mounted) {
+      return;
+    }
+
+    ref.invalidate(currentOwnerPetsProvider);
+    ref.invalidate(petByIdProvider(petId));
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$petName was deleted.')));
+    context.go(AppRoutes.pets);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!widget.isEditing) {
@@ -202,7 +236,7 @@ class _PetFormScreenState extends ConsumerState<PetFormScreen> {
                       controller: _nameController,
                       labelText: 'Pet name',
                       textInputAction: TextInputAction.next,
-                      enabled: !_isSaving,
+                      enabled: !_isBusy,
                       validator: (value) {
                         final name = value?.trim() ?? '';
                         if (name.length < 2 || name.length > 60) {
@@ -217,7 +251,7 @@ class _PetFormScreenState extends ConsumerState<PetFormScreen> {
                       labelText: 'Species',
                       hintText: 'e.g. Dog, Cat',
                       textInputAction: TextInputAction.next,
-                      enabled: !_isSaving,
+                      enabled: !_isBusy,
                       validator: (value) {
                         final species = value?.trim() ?? '';
                         if (species.length < 2 || species.length > 40) {
@@ -231,7 +265,7 @@ class _PetFormScreenState extends ConsumerState<PetFormScreen> {
                       controller: _breedController,
                       labelText: 'Breed (optional)',
                       textInputAction: TextInputAction.next,
-                      enabled: !_isSaving,
+                      enabled: !_isBusy,
                       validator: (value) {
                         final breed = value?.trim() ?? '';
                         if (breed.length > 80) {
@@ -249,7 +283,7 @@ class _PetFormScreenState extends ConsumerState<PetFormScreen> {
                         decimal: true,
                       ),
                       textInputAction: TextInputAction.next,
-                      enabled: !_isSaving,
+                      enabled: !_isBusy,
                       validator: (value) {
                         final raw = value?.trim() ?? '';
                         if (raw.isEmpty) return null;
@@ -285,7 +319,7 @@ class _PetFormScreenState extends ConsumerState<PetFormScreen> {
                         ),
                         DropdownMenuItem(value: 'large', child: Text('Large')),
                       ],
-                      onChanged: _isSaving
+                      onChanged: _isBusy
                           ? null
                           : (value) => setState(() => _size = value),
                     ),
@@ -295,7 +329,7 @@ class _PetFormScreenState extends ConsumerState<PetFormScreen> {
                       labelText: 'Coat type (optional)',
                       hintText: 'e.g. Short, Long, Double coat',
                       textInputAction: TextInputAction.next,
-                      enabled: !_isSaving,
+                      enabled: !_isBusy,
                       validator: (value) {
                         final coat = value?.trim() ?? '';
                         if (coat.length > 80) {
@@ -322,7 +356,7 @@ class _PetFormScreenState extends ConsumerState<PetFormScreen> {
                       controller: _medicalNotesController,
                       labelText: 'Medical notes (optional)',
                       maxLines: 3,
-                      enabled: !_isSaving,
+                      enabled: !_isBusy,
                       validator: (value) {
                         final notes = value?.trim() ?? '';
                         if (notes.length > 1000) {
@@ -336,7 +370,7 @@ class _PetFormScreenState extends ConsumerState<PetFormScreen> {
                       controller: _behaviourNotesController,
                       labelText: 'Behaviour notes (optional)',
                       maxLines: 3,
-                      enabled: !_isSaving,
+                      enabled: !_isBusy,
                       validator: (value) {
                         final notes = value?.trim() ?? '';
                         if (notes.length > 1000) {
@@ -350,7 +384,7 @@ class _PetFormScreenState extends ConsumerState<PetFormScreen> {
                       controller: _careNotesController,
                       labelText: 'Care instructions (optional)',
                       maxLines: 3,
-                      enabled: !_isSaving,
+                      enabled: !_isBusy,
                       validator: (value) {
                         final notes = value?.trim() ?? '';
                         if (notes.length > 1000) {
@@ -367,8 +401,27 @@ class _PetFormScreenState extends ConsumerState<PetFormScreen> {
                     PrimaryButton(
                       label: widget.isEditing ? 'Save changes' : 'Add pet',
                       isLoading: _isSaving,
-                      onPressed: _isSaving ? null : _save,
+                      onPressed: _isBusy ? null : _save,
                     ),
+                    if (widget.isEditing) ...[
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: _isBusy ? null : _deletePet,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Theme.of(
+                              context,
+                            ).colorScheme.error,
+                            side: BorderSide(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: const Text('Delete pet'),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
