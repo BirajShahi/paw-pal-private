@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/ai_recommendation/ai_recommendation_screen.dart';
 import '../../features/auth/account_setup_error_screen.dart';
 import '../../features/auth/auth_providers.dart';
 import '../../features/auth/auth_role.dart';
@@ -39,6 +40,7 @@ abstract final class AppRoutes {
   static const sitterServices = '/sitter-services';
   static const sitterServiceNew = '/sitter-services/new';
   static const petNew = '/pets/new';
+  static const aiRecommendation = '/ai-recommendation';
 
   static String petEdit(String petId) => '/pets/$petId/edit';
 
@@ -59,6 +61,7 @@ const _ownerRoutes = <String>{
   AppRoutes.map,
   AppRoutes.bookings,
   AppRoutes.profile,
+  AppRoutes.aiRecommendation,
 };
 
 const _sitterRoutes = <String>{
@@ -136,6 +139,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.profile,
         builder: (context, state) => const OwnerProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.aiRecommendation,
+        builder: (context, state) => const AiRecommendationScreen(),
       ),
       GoRoute(
         path: AppRoutes.petNew,

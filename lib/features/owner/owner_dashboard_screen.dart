@@ -71,7 +71,51 @@ class _OwnerDashboardScreenState extends ConsumerState<OwnerDashboardScreen> {
                       style: Theme.of(context).textTheme.bodyMedium,
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
+                    Card(
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: _isLoggingOut
+                            ? null
+                            : () => context.go(AppRoutes.aiRecommendation),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.auto_awesome,
+                                size: 36,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'AI Service Finder',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Describe your pet’s needs and find the '
+                                      'exact PawPal service to book.',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.chevron_right),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                     PrimaryButton(
                       label: 'Profile',
                       onPressed: _isLoggingOut
