@@ -74,6 +74,13 @@ class _SitterDashboardScreenState extends ConsumerState<SitterDashboardScreen> {
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 32),
+                      PrimaryButton(
+                        label: 'Edit profile',
+                        onPressed: _isLoggingOut
+                            ? null
+                            : () => context.go(AppRoutes.sitterProfile),
+                      ),
+                      const SizedBox(height: 12),
                       if (_errorMessage != null) ...[
                         ErrorMessage(message: _errorMessage!),
                         const SizedBox(height: 16),

@@ -14,6 +14,7 @@ import '../../features/owner/owner_dashboard_screen.dart';
 import '../../features/owner/owner_shell.dart';
 import '../../features/pets/pet_list_screen.dart';
 import '../../features/profile/owner_profile_screen.dart';
+import '../../features/profile/sitter_profile_screen.dart';
 import '../../features/sitter/sitter_dashboard_screen.dart';
 import '../../features/sitters/sitter_list_screen.dart';
 
@@ -30,6 +31,7 @@ abstract final class AppRoutes {
   static const sitterDashboard = '/sitter-dashboard';
   static const accountSetup = '/account-setup';
   static const profile = '/profile';
+  static const sitterProfile = '/sitter-profile';
 }
 
 const _publicRoutes = <String>{
@@ -47,7 +49,10 @@ const _ownerRoutes = <String>{
   AppRoutes.profile,
 };
 
-const _sitterRoutes = <String>{AppRoutes.sitterDashboard};
+const _sitterRoutes = <String>{
+  AppRoutes.sitterDashboard,
+  AppRoutes.sitterProfile,
+};
 
 /// GoRouter wired to Riverpod auth/role state for redirects.
 final goRouterProvider = Provider<GoRouter>((ref) {
@@ -85,6 +90,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.sitterDashboard,
         builder: (context, state) => const SitterDashboardScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.sitterProfile,
+        builder: (context, state) => const SitterProfileScreen(),
       ),
       GoRoute(
         path: AppRoutes.profile,
