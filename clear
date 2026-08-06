@@ -1,0 +1,101 @@
+[33mcommit d7409975c8fcf9b01610187ff4803cf3268abd9a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m
+Author: Biraj Bikram Shahi <meancake4@gmail.com>
+Date:   Thu Aug 6 21:13:00 2026 +1000
+
+    feat: add pet database schema and security policies
+
+[33mcommit d986dd80a239b0d459bb3ba6ae214f219a02588e[m
+Author: Biraj Bikram Shahi <meancake4@gmail.com>
+Date:   Thu Aug 6 21:07:02 2026 +1000
+
+    feat: add sitter profile management
+
+[33mcommit 3e5978762a51d1255ad94b280a61fa7446768dfd[m
+Author: Biraj Bikram Shahi <meancake4@gmail.com>
+Date:   Thu Aug 6 20:53:22 2026 +1000
+
+    feat: add owner profile management
+
+[33mcommit 62463a939fd2c2786a97fc656dd164a47d282272[m
+Author: Biraj Bikram Shahi <meancake4@gmail.com>
+Date:   Thu Aug 6 20:44:33 2026 +1000
+
+    feat: add profile data foundation
+
+[33mcommit b878b3edc266a806faff52ede2f8f4c9b144ab7b[m
+Author: Biraj Bikram Shahi <meancake4@gmail.com>
+Date:   Thu Aug 6 20:35:36 2026 +1000
+
+    feat: protect routes and restore authentication sessions
+
+[33mcommit 93c5848417aec7309981690b278ce292eef41412[m
+Author: Biraj Bikram Shahi <meancake4@gmail.com>
+Date:   Thu Aug 6 20:15:11 2026 +1000
+
+    feat: add login and logout functionality
+
+[33mcommit 14c67aa2d0514ad7ac32a8643ab861604b3740a3[m
+Author: Biraj Bikram Shahi <meancake4@gmail.com>
+Date:   Thu Aug 6 19:53:40 2026 +1000
+
+    feat: add owner and sitter registration
+
+[33mcommit 989a0dfb6b614f2da2c753f6d7f75bb9e5a4d15f[m
+Author: Biraj Bikram Shahi <meancake4@gmail.com>
+Date:   Thu Aug 6 19:39:15 2026 +1000
+
+    feat: add authentication repository and providers
+
+[33mcommit 9e397fde2fb2a10c35025612df09bdaba7dd0fb2[m
+Author: Biraj Bikram Shahi <meancake4@gmail.com>
+Date:   Thu Aug 6 19:12:59 2026 +1000
+
+    chore: add Riverpod dependency
+
+[33mcommit 443bd91cbc97955da1b48a5fd879ed617d03648c[m
+Author: Biraj Bikram Shahi <meancake4@gmail.com>
+Date:   Thu Aug 6 19:06:56 2026 +1000
+
+    feat: add PawPal profile database schema and security policies
+
+[33mcommit cd9c4d15842424fd0b9b3db77d7665efd73d621b[m
+Author: Biraj Bikram Shahi <meancake4@gmail.com>
+Date:   Tue Aug 4 20:58:34 2026 +1000
+
+    feat: configure Supabase application client
+
+[33mcommit 7430ee034004c1c6c2027c88c3e0afd51222ee78[m
+Author: Biraj Bikram Shahi <meancake4@gmail.com>
+Date:   Tue Aug 4 20:36:36 2026 +1000
+
+    chore: add Supabase Flutter dependency
+
+[33mcommit bf30968e21a2a1b3507030668d41d471faf07043[m
+Author: Biraj Bikram Shahi <meancake4@gmail.com>
+Date:   Tue Aug 4 20:22:39 2026 +1000
+
+    feat: add PawPal navigation and placeholder screens
+
+[33mcommit 6376c93fc7db83fe3a36a1c8da2ec427e66b63d2[m
+Author: Biraj Bikram Shahi <meancake4@gmail.com>
+Date:   Tue Aug 4 20:16:22 2026 +1000
+
+    chore: add GoRouter dependency
+
+[33mcommit ddd055839c29c9ec3be54411ae9aef8c422cce53[m
+Author: Biraj Bikram Shahi <meancake4@gmail.com>
+Date:   Tue Aug 4 20:12:16 2026 +1000
+
+    feat: add PawPal application foundation
+
+[33mcommit 8d7c1261cdc2247b604e9269dde17d45d825ed33[m
+Author: Biraj Bikram Shahi <meancake4@gmail.com>
+Date:   Tue Aug 4 20:05:34 2026 +1000
+
+    chore: add PawPal Cursor rules
+
+[33mcommit ff4b104357d676b0117bd50afbe700a79fc19041[m
+Author: Biraj Bikram Shahi <meancake4@gmail.com>
+Date:   Tue Aug 4 20:01:00 2026 +1000
+
+    chore: create PawPal Android and web project
