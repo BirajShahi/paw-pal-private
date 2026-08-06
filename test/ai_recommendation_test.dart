@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:paw_pal/core/router/app_router.dart';
+import 'package:paw_pal/features/ai_recommendation/ai_recommendation_preparation_result.dart';
+import 'package:paw_pal/features/ai_recommendation/ai_recommendation_providers.dart';
+import 'package:paw_pal/features/ai_recommendation/ai_recommendation_repository.dart';
 import 'package:paw_pal/features/ai_recommendation/ai_recommendation_request.dart';
 import 'package:paw_pal/features/ai_recommendation/ai_recommendation_screen.dart';
 import 'package:paw_pal/features/pets/pet_model.dart';
@@ -58,6 +61,38 @@ class _TrackingPetRepository extends PetRepository {
   }
 }
 
+class _FakeAiRecommendationRepository extends AiRecommendationRepository {
+  _FakeAiRecommendationRepository(super.client);
+
+  int prepareCalls = 0;
+  Object? errorToThrow;
+  Duration delay = Duration.zero;
+  AiRecommendationPreparationResult result = AiRecommendationPreparationResult(
+    ready: true,
+    petId: 'pet-1',
+    serviceCount: 14,
+    requestId: 'req-1',
+  );
+
+  @override
+  Future<AiRecommendationPreparationResult> prepareRecommendation(
+    AiRecommendationRequest request,
+  ) async {
+    prepareCalls++;
+    if (delay > Duration.zero) {
+      await Future<void>.delayed(delay);
+    }
+    final error = errorToThrow;
+    if (error != null) {
+      if (error is Exception) {
+        throw error;
+      }
+      throw Exception(error);
+    }
+    return result;
+  }
+}
+
 PetModel _pet({
   String id = 'pet-1',
   String name = 'Buddy',
@@ -105,6 +140,21 @@ void main() {
         request.ownerDescription,
         'My dog has a muddy coat and needs a full wash today.',
       );
+    });
+
+    test('toMap contains exactly two permitted fields', () {
+      final request = AiRecommendationRequest(
+        petId: 'pet-1',
+        ownerDescription:
+            'My dog has a muddy coat and needs a full wash today.',
+      );
+
+      expect(request.toMap(), {
+        'petId': 'pet-1',
+        'ownerDescription':
+            'My dog has a muddy coat and needs a full wash today.',
+      });
+      expect(request.toMap().keys, ['petId', 'ownerDescription']);
     });
 
     test('rejects blank pet id', () {
@@ -159,14 +209,75 @@ void main() {
     });
   });
 
+  group('AiRecommendationPreparationResult', () {
+    test('maps a valid preparation payload', () {
+      final result = AiRecommendationPreparationResult.fromMap({
+        'ready': true,
+        'petId': 'pet-1',
+        'serviceCount': 14,
+        'requestId': 'req-1',
+      });
+
+      expect(result.ready, isTrue);
+      expect(result.petId, 'pet-1');
+      expect(result.serviceCount, 14);
+      expect(result.requestId, 'req-1');
+    });
+
+    test('rejects invalid preparation result values', () {
+      expect(
+        () => AiRecommendationPreparationResult.fromMap({
+          'ready': false,
+          'petId': 'pet-1',
+          'serviceCount': 14,
+          'requestId': 'req-1',
+        }),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => AiRecommendationPreparationResult.fromMap({
+          'ready': true,
+          'petId': '   ',
+          'serviceCount': 14,
+          'requestId': 'req-1',
+        }),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => AiRecommendationPreparationResult.fromMap({
+          'ready': true,
+          'petId': 'pet-1',
+          'serviceCount': 0,
+          'requestId': 'req-1',
+        }),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => AiRecommendationPreparationResult.fromMap({
+          'ready': true,
+          'petId': 'pet-1',
+          'serviceCount': 14,
+          'requestId': '',
+        }),
+        throwsA(isA<FormatException>()),
+      );
+    });
+  });
+
   group('AiRecommendationScreen', () {
     late _TrackingPetRepository petRepository;
+    late _FakeAiRecommendationRepository aiRepository;
 
     Future<void> pumpScreen(
       WidgetTester tester, {
       required List<PetModel> pets,
+      Object? aiError,
+      Duration aiDelay = Duration.zero,
     }) async {
       petRepository = _TrackingPetRepository(Supabase.instance.client);
+      aiRepository = _FakeAiRecommendationRepository(Supabase.instance.client)
+        ..errorToThrow = aiError
+        ..delay = aiDelay;
 
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1;
@@ -193,11 +304,29 @@ void main() {
           overrides: [
             currentOwnerPetsProvider.overrideWith((ref) async => pets),
             petRepositoryProvider.overrideWithValue(petRepository),
+            aiRecommendationRepositoryProvider.overrideWithValue(aiRepository),
           ],
           child: MaterialApp.router(routerConfig: router),
         ),
       );
       await tester.pumpAndSettle();
+    }
+
+    Future<void> fillAndSubmit(WidgetTester tester) async {
+      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Buddy — Dog · Golden Retriever').last);
+      await tester.pumpAndSettle();
+
+      const description =
+          'My Golden Retriever has a muddy coat and needs a wash today.';
+      await tester.enterText(find.byType(TextFormField), description);
+      await tester.pumpAndSettle();
+
+      final button = find.widgetWithText(FilledButton, 'Find the Best Service');
+      await tester.ensureVisible(button);
+      await tester.pumpAndSettle();
+      await tester.tap(button);
     }
 
     testWidgets('shows no-pet empty state', (tester) async {
@@ -239,31 +368,63 @@ void main() {
       expect(find.text('Buddy — Dog · Golden Retriever'), findsOneWidget);
     });
 
-    testWidgets('submit builds an in-memory request without Supabase', (
+    testWidgets('calls repository once per submission and shows readiness', (
       tester,
     ) async {
       await pumpScreen(tester, pets: [_pet()]);
-
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Buddy — Dog · Golden Retriever').last);
+      await fillAndSubmit(tester);
       await tester.pumpAndSettle();
 
-      const description =
-          'My Golden Retriever has a muddy coat and needs a wash today.';
-      await tester.enterText(find.byType(TextFormField), description);
-      await tester.pumpAndSettle();
+      expect(aiRepository.prepareCalls, 1);
+      expect(petRepository.getCurrentOwnerPetsCalls, 0);
+      expect(find.textContaining('Secure analysis is ready'), findsOneWidget);
+      expect(find.textContaining('14 available services'), findsOneWidget);
+      expect(find.textContaining('Full Grooming'), findsNothing);
+    });
 
-      final button = find.widgetWithText(FilledButton, 'Find the Best Service');
-      await tester.ensureVisible(button);
-      await tester.pumpAndSettle();
+    testWidgets('prevents double submission while processing', (tester) async {
+      await pumpScreen(
+        tester,
+        pets: [_pet()],
+        aiDelay: const Duration(milliseconds: 300),
+      );
+      await fillAndSubmit(tester);
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Label is replaced by a spinner while loading.
+      final button = find.byType(FilledButton);
+      expect(button, findsOneWidget);
+      await tester.tap(button);
+      await tester.pump(const Duration(milliseconds: 50));
       await tester.tap(button);
       await tester.pumpAndSettle();
 
-      expect(petRepository.getCurrentOwnerPetsCalls, 0);
-      expect(find.textContaining('ready for AI analysis'), findsOneWidget);
+      expect(aiRepository.prepareCalls, 1);
+    });
+
+    testWidgets('shows backend error without clearing the form', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        pets: [_pet()],
+        aiError: const AiRecommendationException(
+          'Service catalogue is temporarily unavailable.',
+        ),
+      );
+
+      const description =
+          'My Golden Retriever has a muddy coat and needs a wash today.';
+      await fillAndSubmit(tester);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Service catalogue is temporarily unavailable.'),
+        findsOneWidget,
+      );
       expect(find.text(description), findsOneWidget);
-      expect(find.textContaining('Full Grooming'), findsNothing);
+      expect(find.text('Buddy — Dog · Golden Retriever'), findsOneWidget);
+      expect(aiRepository.prepareCalls, 1);
     });
   });
 }

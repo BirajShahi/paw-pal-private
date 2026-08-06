@@ -12,6 +12,12 @@
 .swiftpm/
 migrate_working_dir/
 
+# Secrets / local environment
+.env
+.env.*
+supabase/functions/.env
+supabase/functions/.env.*
+
 # IntelliJ related
 *.iml
 *.ipr

@@ -18,6 +18,12 @@ class AiRecommendationRequest {
 
   final String petId;
   final String ownerDescription;
+
+  /// Body fields permitted for the recommend-service Edge Function.
+  Map<String, String> toMap() => {
+    'petId': petId,
+    'ownerDescription': ownerDescription,
+  };
 }
 
 String? validateAiRecommendationDescription(String? value) {

@@ -9,6 +9,8 @@ import '../../core/widgets/loading_indicator.dart';
 import '../../core/widgets/primary_button.dart';
 import '../pets/pet_model.dart';
 import '../pets/pet_providers.dart';
+import 'ai_recommendation_providers.dart';
+import 'ai_recommendation_repository.dart';
 import 'ai_recommendation_request.dart';
 
 class AiRecommendationScreen extends ConsumerStatefulWidget {
@@ -27,6 +29,7 @@ class _AiRecommendationScreenState
   String? _selectedPetId;
   bool _isSubmitting = false;
   int _descriptionLength = 0;
+  String? _submitError;
 
   @override
   void initState() {
@@ -58,7 +61,10 @@ class _AiRecommendationScreenState
   Future<void> _submit(List<PetModel> pets) async {
     if (_isSubmitting || !_canSubmit(pets)) return;
 
-    setState(() => _isSubmitting = true);
+    setState(() {
+      _isSubmitting = true;
+      _submitError = null;
+    });
 
     if (!(_formKey.currentState?.validate() ?? false)) {
       if (!mounted) return;
@@ -67,27 +73,38 @@ class _AiRecommendationScreenState
     }
 
     try {
-      // Built in memory only — no API or Supabase call in T09A.
-      AiRecommendationRequest(
+      final request = AiRecommendationRequest(
         petId: _selectedPetId!,
         ownerDescription: _descriptionController.text,
       );
 
+      final result = await ref
+          .read(aiRecommendationRepositoryProvider)
+          .prepareRecommendation(request);
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Your pet’s information is ready for AI analysis. Secure AI '
-            'recommendations will be connected in the next development step.',
+            'Secure analysis is ready. PawPal verified your pet and loaded '
+            '${result.serviceCount} available services. AI recommendations '
+            'will be generated in the next step.',
           ),
         ),
       );
     } on FormatException catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      setState(() => _submitError = error.message);
+    } on AiRecommendationException catch (error) {
+      if (!mounted) return;
+      setState(() => _submitError = error.message);
+    } catch (_) {
+      if (!mounted) return;
+      setState(
+        () => _submitError =
+            'Could not prepare your recommendation. Please try again.',
+      );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -245,6 +262,10 @@ class _AiRecommendationScreenState
                           'breathe, having a seizure or showing another urgent '
                           'symptom, contact a veterinarian immediately.',
                     ),
+                    if (_submitError != null) ...[
+                      const SizedBox(height: 16),
+                      ErrorMessage(message: _submitError!),
+                    ],
                     const SizedBox(height: 24),
                     PrimaryButton(
                       label: 'Find the Best Service',
