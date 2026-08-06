@@ -63,6 +63,31 @@ class SitterServiceRepository {
     ];
   }
 
+  Future<SitterServiceModel> getSitterServiceById(String offeringId) async {
+    final userId = _requireUserId();
+    final trimmedId = offeringId.trim();
+    if (trimmedId.isEmpty) {
+      throw const SitterServiceException('Offering id is required.');
+    }
+
+    final row = await _client
+        .from('sitter_services')
+        .select(_sitterServiceSelect)
+        .eq('id', trimmedId)
+        .eq('sitter_id', userId)
+        .maybeSingle();
+
+    if (row == null) {
+      throw const SitterServiceException('Service offering not found.');
+    }
+
+    try {
+      return SitterServiceModel.fromMap(row);
+    } on FormatException catch (error) {
+      throw SitterServiceException(error.message);
+    }
+  }
+
   Future<SitterServiceModel> createSitterService({
     required String serviceId,
     required double price,

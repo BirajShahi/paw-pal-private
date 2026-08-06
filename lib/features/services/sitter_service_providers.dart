@@ -42,3 +42,18 @@ final activeOfferingsForServiceProvider =
           .read(sitterServiceRepositoryProvider)
           .getActiveOfferingsForService(serviceId);
     });
+
+/// One offering owned by the signed-in sitter. Refresh with `ref.invalidate`.
+final sitterServiceByIdProvider =
+    FutureProvider.family<SitterServiceModel, String>((ref, offeringId) async {
+      final user = ref.watch(currentUserProvider);
+      if (user == null) {
+        throw const SitterServiceException(
+          'You are not signed in. Please log in again.',
+        );
+      }
+
+      return ref
+          .read(sitterServiceRepositoryProvider)
+          .getSitterServiceById(offeringId);
+    });
