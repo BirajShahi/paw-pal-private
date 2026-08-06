@@ -12,6 +12,7 @@ import '../pets/pet_providers.dart';
 import 'ai_recommendation_providers.dart';
 import 'ai_recommendation_repository.dart';
 import 'ai_recommendation_request.dart';
+import 'ai_service_recommendation_result.dart';
 
 class AiRecommendationScreen extends ConsumerStatefulWidget {
   const AiRecommendationScreen({super.key});
@@ -30,6 +31,7 @@ class _AiRecommendationScreenState
   bool _isSubmitting = false;
   int _descriptionLength = 0;
   String? _submitError;
+  AiServiceRecommendationResult? _result;
 
   @override
   void initState() {
@@ -64,6 +66,7 @@ class _AiRecommendationScreenState
     setState(() {
       _isSubmitting = true;
       _submitError = null;
+      _result = null;
     });
 
     if (!(_formKey.currentState?.validate() ?? false)) {
@@ -80,19 +83,10 @@ class _AiRecommendationScreenState
 
       final result = await ref
           .read(aiRecommendationRepositoryProvider)
-          .prepareRecommendation(request);
+          .recommendService(request);
 
       if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Secure analysis is ready. PawPal verified your pet and loaded '
-            '${result.serviceCount} available services. AI recommendations '
-            'will be generated in the next step.',
-          ),
-        ),
-      );
+      setState(() => _result = result);
     } on FormatException catch (error) {
       if (!mounted) return;
       setState(() => _submitError = error.message);
@@ -103,13 +97,21 @@ class _AiRecommendationScreenState
       if (!mounted) return;
       setState(
         () => _submitError =
-            'Could not prepare your recommendation. Please try again.',
+            'PawPal could not generate a recommendation right now. Please try again.',
       );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
       }
     }
+  }
+
+  void _tryAgain(List<PetModel> pets) {
+    setState(() {
+      _result = null;
+      _submitError = null;
+    });
+    _submit(pets);
   }
 
   String _petOptionLabel(PetModel pet) {
@@ -266,6 +268,15 @@ class _AiRecommendationScreenState
                       const SizedBox(height: 16),
                       ErrorMessage(message: _submitError!),
                     ],
+                    if (_result != null) ...[
+                      const SizedBox(height: 24),
+                      _RecommendationResultCard(result: _result!),
+                      const SizedBox(height: 16),
+                      OutlinedButton(
+                        onPressed: _isSubmitting ? null : () => _tryAgain(pets),
+                        child: const Text('Try Again'),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     PrimaryButton(
                       label: 'Find the Best Service',
@@ -279,6 +290,145 @@ class _AiRecommendationScreenState
           ),
         );
       },
+    );
+  }
+}
+
+class _RecommendationResultCard extends StatelessWidget {
+  const _RecommendationResultCard({required this.result});
+
+  final AiServiceRecommendationResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    if (result.outcome == AiRecommendationOutcome.urgentVet) {
+      return _UrgentVetCard(result: result);
+    }
+    return _ServiceRecommendationCard(result: result);
+  }
+}
+
+class _ServiceRecommendationCard extends StatelessWidget {
+  const _ServiceRecommendationCard({required this.result});
+
+  final AiServiceRecommendationResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primary = result.primaryService!;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Recommended Service', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(primary.name, style: theme.textTheme.headlineSmall),
+            if (result.additionalServices.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text('Additional Services', style: theme.textTheme.titleSmall),
+              const SizedBox(height: 8),
+              for (final service in result.additionalServices)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text('• ${service.name}'),
+                ),
+            ],
+            const SizedBox(height: 16),
+            Text('Why this recommendation', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Text(result.reasoning),
+            if (result.sitterRequirements.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Look for a provider who can:',
+                style: theme.textTheme.titleSmall,
+              ),
+              const SizedBox(height: 8),
+              for (final item in result.sitterRequirements)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text('• $item'),
+                ),
+            ],
+            const SizedBox(height: 16),
+            Text('Next step', style: theme.textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Text(result.ownerAdvice),
+            const SizedBox(height: 16),
+            Text(result.safetyNotice, style: theme.textTheme.bodySmall),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UrgentVetCard extends StatelessWidget {
+  const _UrgentVetCard({required this.result});
+
+  final AiServiceRecommendationResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Card(
+      color: scheme.errorContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.emergency, color: scheme.onErrorContainer),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Contact a veterinarian immediately',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: scheme.onErrorContainer,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'PawPal is not recommending a pet-care service for this request.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onErrorContainer,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              result.reasoning,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onErrorContainer,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              result.ownerAdvice,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: scheme.onErrorContainer,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              result.safetyNotice,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onErrorContainer,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

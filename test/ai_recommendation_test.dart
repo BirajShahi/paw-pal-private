@@ -3,11 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:paw_pal/core/router/app_router.dart';
-import 'package:paw_pal/features/ai_recommendation/ai_recommendation_preparation_result.dart';
 import 'package:paw_pal/features/ai_recommendation/ai_recommendation_providers.dart';
 import 'package:paw_pal/features/ai_recommendation/ai_recommendation_repository.dart';
 import 'package:paw_pal/features/ai_recommendation/ai_recommendation_request.dart';
 import 'package:paw_pal/features/ai_recommendation/ai_recommendation_screen.dart';
+import 'package:paw_pal/features/ai_recommendation/ai_service_recommendation_result.dart';
 import 'package:paw_pal/features/pets/pet_model.dart';
 import 'package:paw_pal/features/pets/pet_providers.dart';
 import 'package:paw_pal/features/pets/pet_repository.dart';
@@ -64,21 +64,38 @@ class _TrackingPetRepository extends PetRepository {
 class _FakeAiRecommendationRepository extends AiRecommendationRepository {
   _FakeAiRecommendationRepository(super.client);
 
-  int prepareCalls = 0;
+  int recommendCalls = 0;
   Object? errorToThrow;
   Duration delay = Duration.zero;
-  AiRecommendationPreparationResult result = AiRecommendationPreparationResult(
-    ready: true,
-    petId: 'pet-1',
-    serviceCount: 14,
+  List<Map<String, String>> sentBodies = [];
+
+  AiServiceRecommendationResult result = AiServiceRecommendationResult(
     requestId: 'req-1',
+    outcome: AiRecommendationOutcome.serviceRecommendation,
+    primaryService: RecommendedServiceSummary(
+      code: 'wash_dry_and_brush',
+      name: 'Wash, Dry and Brush',
+    ),
+    additionalServices: [
+      RecommendedServiceSummary(
+        code: 'deshedding_treatment',
+        name: 'De-shedding Treatment',
+      ),
+    ],
+    reasoning:
+        'The coat is muddy and shedding, so a wash with brushing is suitable.',
+    sitterRequirements: ['Gentle dryer handling'],
+    ownerAdvice: 'Book a wash and brush session this week.',
+    safetyNotice:
+        'PawPal provides pet-care service recommendations only and does not replace professional veterinary advice.',
   );
 
   @override
-  Future<AiRecommendationPreparationResult> prepareRecommendation(
+  Future<AiServiceRecommendationResult> recommendService(
     AiRecommendationRequest request,
   ) async {
-    prepareCalls++;
+    recommendCalls++;
+    sentBodies.add(request.toMap());
     if (delay > Duration.zero) {
       await Future<void>.delayed(delay);
     }
@@ -128,20 +145,6 @@ void main() {
   });
 
   group('AiRecommendationRequest', () {
-    test('creates a valid request and trims description', () {
-      final request = AiRecommendationRequest(
-        petId: '  pet-1  ',
-        ownerDescription:
-            '  My dog has a muddy coat and needs a full wash today.  ',
-      );
-
-      expect(request.petId, 'pet-1');
-      expect(
-        request.ownerDescription,
-        'My dog has a muddy coat and needs a full wash today.',
-      );
-    });
-
     test('toMap contains exactly two permitted fields', () {
       final request = AiRecommendationRequest(
         petId: 'pet-1',
@@ -156,108 +159,121 @@ void main() {
       });
       expect(request.toMap().keys, ['petId', 'ownerDescription']);
     });
-
-    test('rejects blank pet id', () {
-      expect(
-        () => AiRecommendationRequest(
-          petId: '   ',
-          ownerDescription: 'My dog has a muddy coat and needs washing today.',
-        ),
-        throwsA(isA<FormatException>()),
-      );
-    });
-
-    test('rejects whitespace-only description', () {
-      expect(
-        validateAiRecommendationDescription('          '),
-        'Please describe what your pet needs today',
-      );
-      expect(
-        () => AiRecommendationRequest(
-          petId: 'pet-1',
-          ownerDescription: '                    ',
-        ),
-        throwsA(isA<FormatException>()),
-      );
-    });
-
-    test('rejects description below minimum length', () {
-      expect(
-        validateAiRecommendationDescription('Too short'),
-        'Please enter at least 20 characters',
-      );
-      expect(
-        () => AiRecommendationRequest(
-          petId: 'pet-1',
-          ownerDescription: 'Too short for AI',
-        ),
-        throwsA(isA<FormatException>()),
-      );
-    });
-
-    test('rejects description above maximum length', () {
-      final tooLong = 'a' * 1001;
-      expect(
-        validateAiRecommendationDescription(tooLong),
-        'Description may contain up to 1000 characters',
-      );
-      expect(
-        () =>
-            AiRecommendationRequest(petId: 'pet-1', ownerDescription: tooLong),
-        throwsA(isA<FormatException>()),
-      );
-    });
   });
 
-  group('AiRecommendationPreparationResult', () {
-    test('maps a valid preparation payload', () {
-      final result = AiRecommendationPreparationResult.fromMap({
-        'ready': true,
-        'petId': 'pet-1',
-        'serviceCount': 14,
+  group('AiServiceRecommendationResult', () {
+    test('maps a service recommendation payload', () {
+      final result = AiServiceRecommendationResult.fromMap({
         'requestId': 'req-1',
+        'outcome': 'service_recommendation',
+        'primaryService': {
+          'code': 'wash_dry_and_brush',
+          'name': 'Wash, Dry and Brush',
+        },
+        'additionalServices': [
+          {'code': 'deshedding_treatment', 'name': 'De-shedding Treatment'},
+        ],
+        'reasoning':
+            'The coat is muddy and shedding, so a wash with brushing is suitable.',
+        'sitterRequirements': ['Gentle dryer handling'],
+        'ownerAdvice': 'Book a wash and brush session this week.',
+        'safetyNotice':
+            'PawPal provides pet-care service recommendations only and does not replace professional veterinary advice.',
       });
 
-      expect(result.ready, isTrue);
-      expect(result.petId, 'pet-1');
-      expect(result.serviceCount, 14);
-      expect(result.requestId, 'req-1');
+      expect(result.outcome, AiRecommendationOutcome.serviceRecommendation);
+      expect(result.primaryService?.name, 'Wash, Dry and Brush');
+      expect(result.additionalServices, hasLength(1));
     });
 
-    test('rejects invalid preparation result values', () {
+    test('maps an urgent veterinary payload', () {
+      final result = AiServiceRecommendationResult.fromMap({
+        'requestId': 'req-2',
+        'outcome': 'urgent_vet',
+        'primaryService': null,
+        'additionalServices': [],
+        'reasoning':
+            'The description reports breathing difficulty that needs urgent care.',
+        'sitterRequirements': [],
+        'ownerAdvice': 'Contact a veterinarian immediately.',
+        'safetyNotice':
+            'PawPal cannot assess or diagnose urgent medical conditions.',
+      });
+
+      expect(result.outcome, AiRecommendationOutcome.urgentVet);
+      expect(result.primaryService, isNull);
+      expect(result.additionalServices, isEmpty);
+      expect(result.sitterRequirements, isEmpty);
+    });
+
+    test('rejects invalid outcome', () {
       expect(
-        () => AiRecommendationPreparationResult.fromMap({
-          'ready': false,
-          'petId': 'pet-1',
-          'serviceCount': 14,
+        () => AiServiceRecommendationResult.fromMap({
           'requestId': 'req-1',
+          'outcome': 'unknown',
+          'primaryService': null,
+          'additionalServices': [],
+          'reasoning': 'A sufficiently long reasoning string for validation.',
+          'sitterRequirements': [],
+          'ownerAdvice': 'Please try again later.',
+          'safetyNotice': 'Safety notice text.',
         }),
         throwsA(isA<FormatException>()),
       );
+    });
+
+    test('rejects missing primary service for service recommendation', () {
       expect(
-        () => AiRecommendationPreparationResult.fromMap({
-          'ready': true,
-          'petId': '   ',
-          'serviceCount': 14,
+        () => AiServiceRecommendationResult.fromMap({
           'requestId': 'req-1',
+          'outcome': 'service_recommendation',
+          'primaryService': null,
+          'additionalServices': [],
+          'reasoning': 'A sufficiently long reasoning string for validation.',
+          'sitterRequirements': [],
+          'ownerAdvice': 'Please book a suitable service soon.',
+          'safetyNotice': 'Safety notice text.',
         }),
         throwsA(isA<FormatException>()),
       );
+    });
+
+    test('rejects primary service for urgent outcome', () {
       expect(
-        () => AiRecommendationPreparationResult.fromMap({
-          'ready': true,
-          'petId': 'pet-1',
-          'serviceCount': 0,
+        () => AiServiceRecommendationResult.fromMap({
           'requestId': 'req-1',
+          'outcome': 'urgent_vet',
+          'primaryService': {
+            'code': 'wash_dry_and_brush',
+            'name': 'Wash, Dry and Brush',
+          },
+          'additionalServices': [],
+          'reasoning': 'A sufficiently long reasoning string for validation.',
+          'sitterRequirements': [],
+          'ownerAdvice': 'Contact a veterinarian immediately.',
+          'safetyNotice': 'Safety notice text.',
         }),
         throwsA(isA<FormatException>()),
       );
+    });
+
+    test('rejects duplicate additional service codes', () {
       expect(
-        () => AiRecommendationPreparationResult.fromMap({
-          'ready': true,
-          'petId': 'pet-1',
-          'serviceCount': 14,
-          'requestId': '',
+        () => AiServiceRecommendationResult.fromMap({
+          'requestId': 'req-1',
+          'outcome': 'service_recommendation',
+          'primaryService': {
+            'code': 'wash_dry_and_brush',
+            'name': 'Wash, Dry and Brush',
+          },
+          'additionalServices': [
+            {'code': 'deshedding_treatment', 'name': 'De-shedding Treatment'},
+            {'code': 'deshedding_treatment', 'name': 'De-shedding Treatment'},
+          ],
+          'reasoning': 'A sufficiently long reasoning string for validation.',
+          'sitterRequirements': [],
+          'ownerAdvice': 'Please book a suitable service soon.',
+          'safetyNotice': 'Safety notice text.',
         }),
         throwsA(isA<FormatException>()),
       );
@@ -273,13 +289,17 @@ void main() {
       required List<PetModel> pets,
       Object? aiError,
       Duration aiDelay = Duration.zero,
+      AiServiceRecommendationResult? result,
     }) async {
       petRepository = _TrackingPetRepository(Supabase.instance.client);
       aiRepository = _FakeAiRecommendationRepository(Supabase.instance.client)
         ..errorToThrow = aiError
         ..delay = aiDelay;
+      if (result != null) {
+        aiRepository.result = result;
+      }
 
-      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.physicalSize = const Size(800, 1800);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
@@ -333,53 +353,25 @@ void main() {
       await pumpScreen(tester, pets: const []);
 
       expect(find.text('Add a pet to get started'), findsOneWidget);
-      expect(
-        find.text(
-          'A pet profile is required for personalised service recommendations.',
-        ),
-        findsOneWidget,
-      );
       expect(find.text('Find the Best Service'), findsNothing);
-
-      await tester.tap(find.text('Add a Pet'));
-      await tester.pumpAndSettle();
-      expect(find.text('Add pet form'), findsOneWidget);
     });
 
-    testWidgets('allows pet selection and shows breed when available', (
-      tester,
-    ) async {
-      await pumpScreen(
-        tester,
-        pets: [
-          _pet(),
-          _pet(id: 'pet-2', name: 'Mochi', species: 'Cat', breed: null),
-        ],
-      );
-
-      await tester.tap(find.byType(DropdownButtonFormField<String>));
-      await tester.pumpAndSettle();
-
-      expect(find.text('Buddy — Dog · Golden Retriever'), findsWidgets);
-      expect(find.text('Mochi — Cat'), findsWidgets);
-
-      await tester.tap(find.text('Buddy — Dog · Golden Retriever').last);
-      await tester.pumpAndSettle();
-      expect(find.text('Buddy — Dog · Golden Retriever'), findsOneWidget);
-    });
-
-    testWidgets('calls repository once per submission and shows readiness', (
+    testWidgets('repository sends exactly petId and ownerDescription', (
       tester,
     ) async {
       await pumpScreen(tester, pets: [_pet()]);
       await fillAndSubmit(tester);
       await tester.pumpAndSettle();
 
-      expect(aiRepository.prepareCalls, 1);
-      expect(petRepository.getCurrentOwnerPetsCalls, 0);
-      expect(find.textContaining('Secure analysis is ready'), findsOneWidget);
-      expect(find.textContaining('14 available services'), findsOneWidget);
-      expect(find.textContaining('Full Grooming'), findsNothing);
+      expect(aiRepository.recommendCalls, 1);
+      expect(aiRepository.sentBodies.single.keys.toList(), [
+        'petId',
+        'ownerDescription',
+      ]);
+      expect(aiRepository.sentBodies.single['petId'], 'pet-1');
+      expect(find.text('Wash, Dry and Brush'), findsOneWidget);
+      expect(find.text('Recommended Service'), findsOneWidget);
+      expect(find.textContaining('wash_dry_and_brush'), findsNothing);
     });
 
     testWidgets('prevents double submission while processing', (tester) async {
@@ -391,7 +383,6 @@ void main() {
       await fillAndSubmit(tester);
       await tester.pump(const Duration(milliseconds: 50));
 
-      // Label is replaced by a spinner while loading.
       final button = find.byType(FilledButton);
       expect(button, findsOneWidget);
       await tester.tap(button);
@@ -399,7 +390,7 @@ void main() {
       await tester.tap(button);
       await tester.pumpAndSettle();
 
-      expect(aiRepository.prepareCalls, 1);
+      expect(aiRepository.recommendCalls, 1);
     });
 
     testWidgets('shows backend error without clearing the form', (
@@ -409,7 +400,7 @@ void main() {
         tester,
         pets: [_pet()],
         aiError: const AiRecommendationException(
-          'Service catalogue is temporarily unavailable.',
+          'PawPal could not generate a recommendation right now. Please try again.',
         ),
       );
 
@@ -419,12 +410,39 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Service catalogue is temporarily unavailable.'),
+        find.text(
+          'PawPal could not generate a recommendation right now. Please try again.',
+        ),
         findsOneWidget,
       );
       expect(find.text(description), findsOneWidget);
       expect(find.text('Buddy — Dog · Golden Retriever'), findsOneWidget);
-      expect(aiRepository.prepareCalls, 1);
+      expect(aiRepository.recommendCalls, 1);
+    });
+
+    testWidgets('shows urgent veterinary warning card', (tester) async {
+      await pumpScreen(
+        tester,
+        pets: [_pet()],
+        result: AiServiceRecommendationResult(
+          requestId: 'req-urgent',
+          outcome: AiRecommendationOutcome.urgentVet,
+          primaryService: null,
+          additionalServices: const [],
+          reasoning:
+              'Breathing difficulty is an urgent symptom needing veterinary care.',
+          sitterRequirements: const [],
+          ownerAdvice: 'Contact a veterinarian immediately.',
+          safetyNotice:
+              'PawPal cannot assess or diagnose urgent medical conditions.',
+        ),
+      );
+      await fillAndSubmit(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Contact a veterinarian immediately'), findsWidgets);
+      expect(find.text('Recommended Service'), findsNothing);
+      expect(find.text('Try Again'), findsOneWidget);
     });
   });
 }

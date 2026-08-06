@@ -1,4 +1,4 @@
-/// In-memory request for a future AI service recommendation.
+/// In-memory request for an AI service recommendation.
 class AiRecommendationRequest {
   AiRecommendationRequest({
     required String petId,

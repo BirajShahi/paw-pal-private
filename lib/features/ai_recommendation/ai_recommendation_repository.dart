@@ -1,9 +1,9 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'ai_recommendation_preparation_result.dart';
 import 'ai_recommendation_request.dart';
+import 'ai_service_recommendation_result.dart';
 
-/// Thrown when recommendation preparation fails.
+/// Thrown when recommendation generation fails.
 class AiRecommendationException implements Exception {
   const AiRecommendationException(this.message);
 
@@ -19,7 +19,7 @@ class AiRecommendationRepository {
 
   final SupabaseClient _client;
 
-  Future<AiRecommendationPreparationResult> prepareRecommendation(
+  Future<AiServiceRecommendationResult> recommendService(
     AiRecommendationRequest request,
   ) async {
     if (_client.auth.currentSession == null) {
@@ -37,11 +37,11 @@ class AiRecommendationRepository {
       final data = response.data;
       if (data is! Map) {
         throw const AiRecommendationException(
-          'Could not prepare your recommendation. Please try again.',
+          'PawPal could not generate a recommendation right now. Please try again.',
         );
       }
 
-      return AiRecommendationPreparationResult.fromMap(
+      return AiServiceRecommendationResult.fromMap(
         Map<String, dynamic>.from(data),
       );
     } on AiRecommendationException {
@@ -52,7 +52,7 @@ class AiRecommendationRepository {
       throw AiRecommendationException(error.message);
     } catch (_) {
       throw const AiRecommendationException(
-        'Could not prepare your recommendation. Please try again.',
+        'PawPal could not generate a recommendation right now. Please try again.',
       );
     }
   }
@@ -76,8 +76,12 @@ class AiRecommendationRepository {
     return switch (error.status) {
       403 => 'Only pet owners can request service recommendations.',
       404 => 'Pet not found.',
-      503 => 'Service catalogue is temporarily unavailable.',
-      _ => 'Could not prepare your recommendation. Please try again.',
+      429 =>
+        'PawPal could not generate a recommendation right now. Please try again.',
+      503 =>
+        'PawPal could not generate a recommendation right now. Please try again.',
+      _ =>
+        'PawPal could not generate a recommendation right now. Please try again.',
     };
   }
 }
