@@ -12,6 +12,7 @@ import '../../features/home/home_screen.dart';
 import '../../features/map/nearby_sitters_map_screen.dart';
 import '../../features/owner/owner_dashboard_screen.dart';
 import '../../features/owner/owner_shell.dart';
+import '../../features/pets/pet_form_screen.dart';
 import '../../features/pets/pet_list_screen.dart';
 import '../../features/profile/owner_profile_screen.dart';
 import '../../features/profile/sitter_profile_screen.dart';
@@ -32,6 +33,9 @@ abstract final class AppRoutes {
   static const accountSetup = '/account-setup';
   static const profile = '/profile';
   static const sitterProfile = '/sitter-profile';
+  static const petNew = '/pets/new';
+
+  static String petEdit(String petId) => '/pets/$petId/edit';
 }
 
 const _publicRoutes = <String>{
@@ -53,6 +57,11 @@ const _sitterRoutes = <String>{
   AppRoutes.sitterDashboard,
   AppRoutes.sitterProfile,
 };
+
+bool _isOwnerRoute(String location) {
+  if (_ownerRoutes.contains(location)) return true;
+  return location.startsWith('${AppRoutes.pets}/');
+}
 
 /// GoRouter wired to Riverpod auth/role state for redirects.
 final goRouterProvider = Provider<GoRouter>((ref) {
@@ -98,6 +107,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.profile,
         builder: (context, state) => const OwnerProfileScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.petNew,
+        builder: (context, state) => const PetFormScreen(),
+      ),
+      GoRoute(
+        path: '/pets/:petId/edit',
+        builder: (context, state) {
+          final petId = state.pathParameters['petId']!;
+          return PetFormScreen(petId: petId);
+        },
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -160,7 +180,7 @@ String? _authRedirect(Ref ref, GoRouterState state) {
   final hasSession = ref.read(authRepositoryProvider).currentSession != null;
 
   final isPublic = _publicRoutes.contains(location);
-  final isOwnerRoute = _ownerRoutes.contains(location);
+  final isOwnerRoute = _isOwnerRoute(location);
   final isSitterRoute = _sitterRoutes.contains(location);
   final isAccountSetup = location == AppRoutes.accountSetup;
   final isProtected = isOwnerRoute || isSitterRoute || isAccountSetup;

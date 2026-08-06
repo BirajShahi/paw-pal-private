@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../core/router/app_router.dart';
 import '../../core/widgets/error_message.dart';
 import '../../core/widgets/loading_indicator.dart';
 import 'pet_model.dart';
@@ -48,6 +50,7 @@ class PetListScreen extends ConsumerWidget {
           if (pets.isEmpty) {
             return _EmptyPetsState(
               onRefresh: () => ref.invalidate(currentOwnerPetsProvider),
+              onAdd: () => context.go(AppRoutes.petNew),
             );
           }
 
@@ -85,6 +88,11 @@ class PetListScreen extends ConsumerWidget {
                                 onPressed: () => _refresh(ref),
                                 icon: const Icon(Icons.refresh),
                               ),
+                            IconButton(
+                              tooltip: 'Add pet',
+                              onPressed: () => context.go(AppRoutes.petNew),
+                              icon: const Icon(Icons.add),
+                            ),
                           ],
                         ),
                       ),
@@ -133,9 +141,10 @@ class PetListScreen extends ConsumerWidget {
 }
 
 class _EmptyPetsState extends StatelessWidget {
-  const _EmptyPetsState({required this.onRefresh});
+  const _EmptyPetsState({required this.onRefresh, required this.onAdd});
 
   final VoidCallback onRefresh;
+  final VoidCallback onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -167,6 +176,12 @@ class _EmptyPetsState extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: onAdd,
+                icon: const Icon(Icons.add),
+                label: const Text('Add pet'),
+              ),
+              const SizedBox(height: 8),
               TextButton.icon(
                 onPressed: onRefresh,
                 icon: const Icon(Icons.refresh),
@@ -199,9 +214,7 @@ class _PetCard extends StatelessWidget {
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          // Navigation with [pet.id] will be added in a later ticket.
-        },
+        onTap: () => context.go(AppRoutes.petEdit(pet.id)),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
