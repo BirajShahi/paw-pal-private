@@ -9,6 +9,9 @@ import '../../core/widgets/loading_indicator.dart';
 import '../../core/widgets/primary_button.dart';
 import '../pets/pet_model.dart';
 import '../pets/pet_providers.dart';
+import '../services/sitter_service_model.dart';
+import '../services/sitter_service_providers.dart';
+import '../services/sitter_services_screen.dart';
 import 'ai_recommendation_providers.dart';
 import 'ai_recommendation_repository.dart';
 import 'ai_recommendation_request.dart';
@@ -114,6 +117,17 @@ class _AiRecommendationScreenState
     _submit(pets);
   }
 
+  String? get _matchServiceCode {
+    final result = _result;
+    if (result == null) return null;
+    if (result.outcome != AiRecommendationOutcome.serviceRecommendation) {
+      return null;
+    }
+    final code = result.primaryService?.code.trim() ?? '';
+    if (code.isEmpty) return null;
+    return code;
+  }
+
   String _petOptionLabel(PetModel pet) {
     final breed = pet.breed?.trim();
     if (breed != null && breed.isNotEmpty) {
@@ -157,6 +171,8 @@ class _AiRecommendationScreenState
     final selectedId = pets.any((pet) => pet.id == _selectedPetId)
         ? _selectedPetId
         : null;
+    final matchCode = _matchServiceCode;
+    final recommendedServiceName = _result?.primaryService?.name;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -271,6 +287,14 @@ class _AiRecommendationScreenState
                     if (_result != null) ...[
                       const SizedBox(height: 24),
                       _RecommendationResultCard(result: _result!),
+                      if (matchCode != null &&
+                          recommendedServiceName != null) ...[
+                        const SizedBox(height: 24),
+                        _MatchingProvidersSection(
+                          serviceCode: matchCode,
+                          recommendedServiceName: recommendedServiceName,
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       OutlinedButton(
                         onPressed: _isSubmitting ? null : () => _tryAgain(pets),
@@ -291,6 +315,194 @@ class _AiRecommendationScreenState
         );
       },
     );
+  }
+}
+
+class _MatchingProvidersSection extends ConsumerWidget {
+  const _MatchingProvidersSection({
+    required this.serviceCode,
+    required this.recommendedServiceName,
+  });
+
+  final String serviceCode;
+  final String recommendedServiceName;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final matchesAsync = ref.watch(
+      activeSitterMatchesByServiceCodeProvider(serviceCode),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Providers offering this service',
+                style: theme.textTheme.titleMedium,
+              ),
+            ),
+            IconButton(
+              tooltip: 'Refresh providers',
+              onPressed: () {
+                ref.invalidate(
+                  activeSitterMatchesByServiceCodeProvider(serviceCode),
+                );
+              },
+              icon: const Icon(Icons.refresh),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'These PawPal providers currently offer the recommended service.',
+          style: theme.textTheme.bodySmall,
+        ),
+        const SizedBox(height: 12),
+        matchesAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: LoadingIndicator(message: 'Loading providers…'),
+          ),
+          error: (error, _) => ErrorMessage(
+            message: error.toString(),
+            onRetry: () {
+              ref.invalidate(
+                activeSitterMatchesByServiceCodeProvider(serviceCode),
+              );
+            },
+          ),
+          data: (offerings) {
+            if (offerings.isEmpty) {
+              return const _ProvidersEmptyState();
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final offering in offerings) ...[
+                  _ProviderMatchCard(
+                    offering: offering,
+                    fallbackServiceName: recommendedServiceName,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _ProvidersEmptyState extends StatelessWidget {
+  const _ProvidersEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'No providers currently offer this exact service.',
+              style: theme.textTheme.titleSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'You can try again later or review the recommended service with '
+              'a local pet-care provider.',
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProviderMatchCard extends StatelessWidget {
+  const _ProviderMatchCard({
+    required this.offering,
+    required this.fallbackServiceName,
+  });
+
+  final SitterServiceModel offering;
+  final String fallbackServiceName;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final sitter = offering.sitter;
+    if (sitter == null) {
+      return const SizedBox.shrink();
+    }
+
+    final location = _locationLabel(sitter.suburb, sitter.postcode);
+    final serviceName = offering.service?.name ?? fallbackServiceName;
+    final duration = offering.estimatedDurationMinutes;
+    final notes = offering.serviceNotes?.trim();
+    final description = sitter.serviceDescription?.trim();
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(sitter.fullName, style: theme.textTheme.titleMedium),
+            if (location != null) ...[
+              const SizedBox(height: 4),
+              Text(location, style: theme.textTheme.bodySmall),
+            ],
+            const SizedBox(height: 12),
+            Text(serviceName, style: theme.textTheme.titleSmall),
+            const SizedBox(height: 4),
+            Text(
+              SitterServicesScreen.formatPrice(offering.price),
+              style: theme.textTheme.titleMedium,
+            ),
+            if (duration != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Estimated duration: '
+                '${SitterServicesScreen.formatDuration(duration)}',
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+            if (notes != null && notes.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(notes, style: theme.textTheme.bodyMedium),
+            ],
+            if (description != null && description.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(description, style: theme.textTheme.bodyMedium),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  static String? _locationLabel(String? suburb, String? postcode) {
+    final trimmedSuburb = suburb?.trim();
+    final trimmedPostcode = postcode?.trim();
+    final hasSuburb = trimmedSuburb != null && trimmedSuburb.isNotEmpty;
+    final hasPostcode = trimmedPostcode != null && trimmedPostcode.isNotEmpty;
+
+    if (hasSuburb && hasPostcode) {
+      return '$trimmedSuburb $trimmedPostcode';
+    }
+    if (hasSuburb) return trimmedSuburb;
+    if (hasPostcode) return trimmedPostcode;
+    return null;
   }
 }
 

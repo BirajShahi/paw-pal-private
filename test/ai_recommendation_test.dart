@@ -11,6 +11,11 @@ import 'package:paw_pal/features/ai_recommendation/ai_service_recommendation_res
 import 'package:paw_pal/features/pets/pet_model.dart';
 import 'package:paw_pal/features/pets/pet_providers.dart';
 import 'package:paw_pal/features/pets/pet_repository.dart';
+import 'package:paw_pal/features/services/service_category.dart';
+import 'package:paw_pal/features/services/service_model.dart';
+import 'package:paw_pal/features/services/sitter_profile_summary.dart';
+import 'package:paw_pal/features/services/sitter_service_model.dart';
+import 'package:paw_pal/features/services/sitter_service_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class _MemoryLocalStorage extends LocalStorage {
@@ -124,6 +129,58 @@ PetModel _pet({
     breed: breed,
     createdAt: DateTime.utc(2026, 1, 1),
     updatedAt: DateTime.utc(2026, 1, 1),
+  );
+}
+
+ServiceModel _service({
+  String id = 'svc-1',
+  String code = 'wash_dry_and_brush',
+  String name = 'Wash, Dry and Brush',
+}) {
+  return ServiceModel(
+    id: id,
+    code: code,
+    name: name,
+    category: ServiceCategory.grooming,
+    description: 'A cleaning and brushing service for muddy coats.',
+    includedItems: const ['Wash'],
+    recommendationTags: const ['muddy'],
+    canBeAddOn: false,
+    isActive: true,
+    displayOrder: 10,
+    createdAt: DateTime.utc(2026, 1, 1),
+    updatedAt: DateTime.utc(2026, 1, 1),
+  );
+}
+
+SitterServiceModel _offering({
+  String id = 'offer-1',
+  double price = 30,
+  int? duration = 45,
+  String? notes = 'Friendly one-on-one walks with regular owner updates.',
+  String sitterName = "Sarah's Pet Care",
+  String? suburb = 'Mickleham',
+  String? postcode = '3064',
+  String? serviceDescription,
+}) {
+  return SitterServiceModel(
+    id: id,
+    sitterId: 'sitter-1',
+    serviceId: 'svc-1',
+    price: price,
+    estimatedDurationMinutes: duration,
+    serviceNotes: notes,
+    isActive: true,
+    createdAt: DateTime.utc(2026, 1, 2),
+    updatedAt: DateTime.utc(2026, 1, 2),
+    service: _service(),
+    sitter: SitterProfileSummary(
+      id: 'sitter-1',
+      fullName: sitterName,
+      suburb: suburb,
+      postcode: postcode,
+      serviceDescription: serviceDescription,
+    ),
   );
 }
 
@@ -283,6 +340,11 @@ void main() {
   group('AiRecommendationScreen', () {
     late _TrackingPetRepository petRepository;
     late _FakeAiRecommendationRepository aiRepository;
+    late List<String> watchedMatchCodes;
+    late int matchLoads;
+    Object? matchError;
+    Duration matchDelay = Duration.zero;
+    List<SitterServiceModel> matchOfferings = const [];
 
     Future<void> pumpScreen(
       WidgetTester tester, {
@@ -290,6 +352,9 @@ void main() {
       Object? aiError,
       Duration aiDelay = Duration.zero,
       AiServiceRecommendationResult? result,
+      List<SitterServiceModel>? offerings,
+      Object? offeringsError,
+      Duration offeringsDelay = Duration.zero,
     }) async {
       petRepository = _TrackingPetRepository(Supabase.instance.client);
       aiRepository = _FakeAiRecommendationRepository(Supabase.instance.client)
@@ -299,7 +364,13 @@ void main() {
         aiRepository.result = result;
       }
 
-      tester.view.physicalSize = const Size(800, 1800);
+      watchedMatchCodes = <String>[];
+      matchLoads = 0;
+      matchError = offeringsError;
+      matchDelay = offeringsDelay;
+      matchOfferings = offerings ?? const [];
+
+      tester.view.physicalSize = const Size(800, 2400);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
@@ -325,6 +396,22 @@ void main() {
             currentOwnerPetsProvider.overrideWith((ref) async => pets),
             petRepositoryProvider.overrideWithValue(petRepository),
             aiRecommendationRepositoryProvider.overrideWithValue(aiRepository),
+            activeSitterMatchesByServiceCodeProvider.overrideWith((
+              ref,
+              code,
+            ) async {
+              watchedMatchCodes.add(code);
+              matchLoads++;
+              if (matchDelay > Duration.zero) {
+                await Future<void>.delayed(matchDelay);
+              }
+              final error = matchError;
+              if (error != null) {
+                if (error is Exception) throw error;
+                throw Exception(error);
+              }
+              return matchOfferings;
+            }),
           ],
           child: MaterialApp.router(routerConfig: router),
         ),
@@ -359,7 +446,7 @@ void main() {
     testWidgets('repository sends exactly petId and ownerDescription', (
       tester,
     ) async {
-      await pumpScreen(tester, pets: [_pet()]);
+      await pumpScreen(tester, pets: [_pet()], offerings: const []);
       await fillAndSubmit(tester);
       await tester.pumpAndSettle();
 
@@ -369,9 +456,158 @@ void main() {
         'ownerDescription',
       ]);
       expect(aiRepository.sentBodies.single['petId'], 'pet-1');
-      expect(find.text('Wash, Dry and Brush'), findsOneWidget);
+      expect(find.text('Wash, Dry and Brush'), findsWidgets);
       expect(find.text('Recommended Service'), findsOneWidget);
       expect(find.textContaining('wash_dry_and_brush'), findsNothing);
+    });
+
+    testWidgets('shows matching providers for service recommendation', (
+      tester,
+    ) async {
+      await pumpScreen(tester, pets: [_pet()], offerings: [_offering()]);
+      await fillAndSubmit(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Providers offering this service'), findsOneWidget);
+      expect(watchedMatchCodes, ['wash_dry_and_brush']);
+      expect(find.text("Sarah's Pet Care"), findsOneWidget);
+      expect(find.text('Mickleham 3064'), findsOneWidget);
+      expect(find.text(r'$30.00'), findsOneWidget);
+      expect(find.text('Estimated duration: 45 minutes'), findsOneWidget);
+      expect(
+        find.text('Friendly one-on-one walks with regular owner updates.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('hides provider section for urgent veterinary results', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        pets: [_pet()],
+        result: AiServiceRecommendationResult(
+          requestId: 'req-urgent',
+          outcome: AiRecommendationOutcome.urgentVet,
+          primaryService: null,
+          additionalServices: const [],
+          reasoning:
+              'Breathing difficulty is an urgent symptom needing veterinary care.',
+          sitterRequirements: const [],
+          ownerAdvice: 'Contact a veterinarian immediately.',
+          safetyNotice:
+              'PawPal cannot assess or diagnose urgent medical conditions.',
+        ),
+        offerings: [_offering()],
+      );
+      await fillAndSubmit(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Contact a veterinarian immediately'), findsWidgets);
+      expect(find.text('Providers offering this service'), findsNothing);
+      expect(watchedMatchCodes, isEmpty);
+    });
+
+    testWidgets('loading providers does not hide the recommendation', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        pets: [_pet()],
+        offeringsDelay: const Duration(milliseconds: 300),
+        offerings: [_offering()],
+      );
+      await fillAndSubmit(tester);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('Recommended Service'), findsOneWidget);
+      expect(find.text('Wash, Dry and Brush'), findsWidgets);
+      expect(find.text('Loading providers…'), findsOneWidget);
+
+      await tester.pumpAndSettle();
+      expect(find.text("Sarah's Pet Care"), findsOneWidget);
+    });
+
+    testWidgets('shows empty provider state when none match', (tester) async {
+      await pumpScreen(tester, pets: [_pet()], offerings: const []);
+      await fillAndSubmit(tester);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('No providers currently offer this exact service.'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining(
+          'try again later or review the recommended service',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('retry refreshes only the matching provider', (tester) async {
+      await pumpScreen(
+        tester,
+        pets: [_pet()],
+        offeringsError: Exception('Could not load providers.'),
+      );
+      await fillAndSubmit(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Recommended Service'), findsOneWidget);
+      expect(find.text('Try again'), findsOneWidget);
+      final loadsBeforeRetry = matchLoads;
+
+      matchError = null;
+      matchOfferings = [_offering()];
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+
+      expect(matchLoads, greaterThan(loadsBeforeRetry));
+      expect(watchedMatchCodes.toSet(), {'wash_dry_and_brush'});
+      expect(find.text("Sarah's Pet Care"), findsOneWidget);
+      expect(aiRepository.recommendCalls, 1);
+    });
+
+    testWidgets('new recommendation clears previous provider results', (
+      tester,
+    ) async {
+      await pumpScreen(
+        tester,
+        pets: [_pet()],
+        offerings: [_offering(sitterName: 'Old Provider')],
+      );
+      await fillAndSubmit(tester);
+      await tester.pumpAndSettle();
+      expect(find.text('Old Provider'), findsOneWidget);
+
+      aiRepository.result = AiServiceRecommendationResult(
+        requestId: 'req-2',
+        outcome: AiRecommendationOutcome.serviceRecommendation,
+        primaryService: RecommendedServiceSummary(
+          code: 'dog_walking',
+          name: 'Dog Walking',
+        ),
+        additionalServices: const [],
+        reasoning:
+            'The pet needs regular outdoor exercise with a trusted walker.',
+        sitterRequirements: const ['Reliable walking routine'],
+        ownerAdvice: 'Book a walking session this week.',
+        safetyNotice:
+            'PawPal provides pet-care service recommendations only and does not replace professional veterinary advice.',
+      );
+      matchOfferings = [
+        _offering(sitterName: 'New Walker', notes: null, duration: 60),
+      ];
+
+      await tester.tap(find.text('Try Again'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Old Provider'), findsNothing);
+      expect(find.text('New Walker'), findsOneWidget);
+      expect(find.text('Dog Walking'), findsWidgets);
+      expect(watchedMatchCodes.contains('dog_walking'), isTrue);
     });
 
     testWidgets('prevents double submission while processing', (tester) async {
@@ -379,6 +615,7 @@ void main() {
         tester,
         pets: [_pet()],
         aiDelay: const Duration(milliseconds: 300),
+        offerings: const [],
       );
       await fillAndSubmit(tester);
       await tester.pump(const Duration(milliseconds: 50));
@@ -402,6 +639,7 @@ void main() {
         aiError: const AiRecommendationException(
           'PawPal could not generate a recommendation right now. Please try again.',
         ),
+        offerings: const [],
       );
 
       const description =
@@ -418,6 +656,7 @@ void main() {
       expect(find.text(description), findsOneWidget);
       expect(find.text('Buddy — Dog · Golden Retriever'), findsOneWidget);
       expect(aiRepository.recommendCalls, 1);
+      expect(watchedMatchCodes, isEmpty);
     });
 
     testWidgets('shows urgent veterinary warning card', (tester) async {
@@ -436,6 +675,7 @@ void main() {
           safetyNotice:
               'PawPal cannot assess or diagnose urgent medical conditions.',
         ),
+        offerings: const [],
       );
       await fillAndSubmit(tester);
       await tester.pumpAndSettle();
