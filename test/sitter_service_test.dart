@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:paw_pal/features/services/service_category.dart';
+import 'package:paw_pal/features/services/sitter_profile_summary.dart';
 import 'package:paw_pal/features/services/sitter_service_model.dart';
+import 'package:paw_pal/features/services/sitter_service_providers.dart';
 import 'package:paw_pal/features/services/sitter_service_repository.dart';
 
 void main() {
@@ -21,11 +23,29 @@ void main() {
     };
   }
 
+  Map<String, dynamic> profileMap({
+    String? id,
+    String? fullName,
+    Object? suburb = 'Carlton',
+    Object? postcode = '3053',
+    Object? serviceDescription = 'Experienced dog walker',
+  }) {
+    return {
+      'id': id ?? 'sitter-1',
+      'full_name': fullName ?? 'Alex Walker',
+      'suburb': suburb,
+      'postcode': postcode,
+      'service_description': serviceDescription,
+    };
+  }
+
   Map<String, dynamic> offeringMap({
     Object? price = 45.5,
     Object? notes = 'Gentle handling',
     Object? duration = 60,
     bool includeService = true,
+    Object? profiles,
+    bool includeProfiles = false,
     String? id,
     String? sitterId,
     String? serviceId,
@@ -41,8 +61,42 @@ void main() {
       'created_at': '2026-01-02T10:00:00Z',
       'updated_at': '2026-01-03T10:00:00Z',
       if (includeService) 'services': serviceMap(),
+      if (includeProfiles) 'profiles': profiles ?? profileMap(),
     };
   }
+
+  group('SitterProfileSummary.fromMap', () {
+    test('maps a complete sitter summary', () {
+      final sitter = SitterProfileSummary.fromMap(profileMap());
+
+      expect(sitter.id, 'sitter-1');
+      expect(sitter.fullName, 'Alex Walker');
+      expect(sitter.suburb, 'Carlton');
+      expect(sitter.postcode, '3053');
+      expect(sitter.serviceDescription, 'Experienced dog walker');
+    });
+
+    test('converts blank optional values to null', () {
+      final sitter = SitterProfileSummary.fromMap(
+        profileMap(suburb: '   ', postcode: '', serviceDescription: '  '),
+      );
+
+      expect(sitter.suburb, isNull);
+      expect(sitter.postcode, isNull);
+      expect(sitter.serviceDescription, isNull);
+    });
+
+    test('rejects missing or blank required sitter values', () {
+      expect(
+        () => SitterProfileSummary.fromMap(profileMap(id: ' ')),
+        throwsA(isA<FormatException>()),
+      );
+      expect(
+        () => SitterProfileSummary.fromMap(profileMap(fullName: '')),
+        throwsA(isA<FormatException>()),
+      );
+    });
+  });
 
   group('SitterServiceModel.fromMap', () {
     test('maps a complete offering with nested service', () {
@@ -57,6 +111,33 @@ void main() {
       expect(offering.isActive, isTrue);
       expect(offering.service?.code, 'full_grooming');
       expect(offering.service?.category, ServiceCategory.grooming);
+      expect(offering.sitter, isNull);
+    });
+
+    test('maps nested profile data when available', () {
+      final offering = SitterServiceModel.fromMap(
+        offeringMap(includeProfiles: true),
+      );
+
+      expect(offering.sitter?.fullName, 'Alex Walker');
+      expect(offering.sitter?.suburb, 'Carlton');
+    });
+
+    test('maps nested sitter key when available', () {
+      final map = offeringMap();
+      map['sitter'] = profileMap(fullName: 'Sam Sitter');
+      final offering = SitterServiceModel.fromMap(map);
+
+      expect(offering.sitter?.fullName, 'Sam Sitter');
+    });
+
+    test('still works without a joined sitter', () {
+      final offering = SitterServiceModel.fromMap(
+        offeringMap(includeService: true, includeProfiles: false),
+      );
+
+      expect(offering.service?.code, 'full_grooming');
+      expect(offering.sitter, isNull);
     });
 
     test('converts numeric database prices with num.toDouble()', () {
@@ -110,6 +191,19 @@ void main() {
       expect(
         () => SitterServiceModel.fromMap(offeringMap(duration: 1441)),
         throwsA(isA<FormatException>()),
+      );
+    });
+  });
+
+  group('normalizeMatchServiceCode', () {
+    test('trims and lowercases the service code', () {
+      expect(normalizeMatchServiceCode('  Dog_Walking  '), 'dog_walking');
+    });
+
+    test('rejects a blank service code', () {
+      expect(
+        () => normalizeMatchServiceCode('   '),
+        throwsA(isA<SitterServiceException>()),
       );
     });
   });

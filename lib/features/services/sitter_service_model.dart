@@ -1,6 +1,8 @@
 import 'service_model.dart';
+import 'sitter_profile_summary.dart';
 
-/// Row from `public.sitter_services`, optionally with joined catalogue service.
+/// Row from `public.sitter_services`, optionally with joined catalogue service
+/// and sitter profile.
 class SitterServiceModel {
   const SitterServiceModel({
     required this.id,
@@ -13,6 +15,7 @@ class SitterServiceModel {
     required this.createdAt,
     required this.updatedAt,
     this.service,
+    this.sitter,
   });
 
   final String id;
@@ -25,6 +28,7 @@ class SitterServiceModel {
   final DateTime createdAt;
   final DateTime updatedAt;
   final ServiceModel? service;
+  final SitterProfileSummary? sitter;
 
   factory SitterServiceModel.fromMap(Map<String, dynamic> map) {
     final id = (map['id'] as String?)?.trim() ?? '';
@@ -63,11 +67,21 @@ class SitterServiceModel {
     }
 
     ServiceModel? service;
-    final nested = map['services'];
-    if (nested is Map<String, dynamic>) {
-      service = ServiceModel.fromMap(nested);
-    } else if (nested is Map) {
-      service = ServiceModel.fromMap(Map<String, dynamic>.from(nested));
+    final nestedService = map['services'];
+    if (nestedService is Map<String, dynamic>) {
+      service = ServiceModel.fromMap(nestedService);
+    } else if (nestedService is Map) {
+      service = ServiceModel.fromMap(Map<String, dynamic>.from(nestedService));
+    }
+
+    SitterProfileSummary? sitter;
+    final nestedSitter = map['profiles'] ?? map['sitter'];
+    if (nestedSitter is Map<String, dynamic>) {
+      sitter = SitterProfileSummary.fromMap(nestedSitter);
+    } else if (nestedSitter is Map) {
+      sitter = SitterProfileSummary.fromMap(
+        Map<String, dynamic>.from(nestedSitter),
+      );
     }
 
     return SitterServiceModel(
@@ -81,6 +95,7 @@ class SitterServiceModel {
       createdAt: createdAt,
       updatedAt: updatedAt,
       service: service,
+      sitter: sitter,
     );
   }
 

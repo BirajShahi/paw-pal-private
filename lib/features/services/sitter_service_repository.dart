@@ -19,6 +19,14 @@ const _sitterServiceSelect =
     'recommendation_tags, can_be_add_on, is_active, display_order, '
     'created_at, updated_at )';
 
+const _activeOfferingsSelect =
+    'id, sitter_id, service_id, price, estimated_duration_minutes, '
+    'service_notes, is_active, created_at, updated_at, '
+    'services ( id, code, name, category, description, included_items, '
+    'recommendation_tags, can_be_add_on, is_active, display_order, '
+    'created_at, updated_at ), '
+    'profiles ( id, full_name, suburb, postcode, service_description )';
+
 /// Supabase access for `public.sitter_services`.
 class SitterServiceRepository {
   SitterServiceRepository(this._client);
@@ -52,15 +60,27 @@ class SitterServiceRepository {
 
     final rows = await _client
         .from('sitter_services')
-        .select(_sitterServiceSelect)
+        .select(_activeOfferingsSelect)
         .eq('service_id', trimmedId)
         .eq('is_active', true)
+        .order('price', ascending: true)
         .order('created_at', ascending: true);
 
-    return [
-      for (final row in rows as List<dynamic>)
-        SitterServiceModel.fromMap(Map<String, dynamic>.from(row as Map)),
-    ];
+    final offerings = <SitterServiceModel>[];
+    for (final row in rows as List<dynamic>) {
+      try {
+        final offering = SitterServiceModel.fromMap(
+          Map<String, dynamic>.from(row as Map),
+        );
+        if (offering.sitter == null) {
+          continue;
+        }
+        offerings.add(offering);
+      } on FormatException {
+        // Skip malformed rows that cannot form a valid match listing.
+      }
+    }
+    return offerings;
   }
 
   Future<SitterServiceModel> getSitterServiceById(String offeringId) async {
