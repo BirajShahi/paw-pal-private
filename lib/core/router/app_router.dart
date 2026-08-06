@@ -16,6 +16,7 @@ import '../../features/pets/pet_form_screen.dart';
 import '../../features/pets/pet_list_screen.dart';
 import '../../features/profile/owner_profile_screen.dart';
 import '../../features/profile/sitter_profile_screen.dart';
+import '../../features/services/add_sitter_service_screen.dart';
 import '../../features/services/sitter_services_screen.dart';
 import '../../features/sitter/sitter_dashboard_screen.dart';
 import '../../features/sitters/sitter_list_screen.dart';
@@ -119,6 +120,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.sitterServices,
         builder: (context, state) => const SitterServicesScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.sitterServiceNew,
+        builder: (context, state) => const AddSitterServiceScreen(),
       ),
       GoRoute(
         path: AppRoutes.profile,
