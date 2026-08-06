@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/config/setup_error_screen.dart';
@@ -10,7 +11,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   if (!SupabaseConfig.isConfigured) {
-    runApp(const SetupErrorApp());
+    runApp(const ProviderScope(child: SetupErrorApp()));
     return;
   }
 
@@ -19,7 +20,7 @@ Future<void> main() async {
     publishableKey: SupabaseConfig.publishableKey,
   );
 
-  runApp(const PawPalApp());
+  runApp(const ProviderScope(child: PawPalApp()));
 }
 
 class PawPalApp extends StatelessWidget {
