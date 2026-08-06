@@ -14,6 +14,7 @@ class AppTextField extends StatelessWidget {
     this.validator,
     this.enabled = true,
     this.maxLines = 1,
+    this.suffixIcon,
   });
 
   final TextEditingController? controller;
@@ -26,6 +27,7 @@ class AppTextField extends StatelessWidget {
   final FormFieldValidator<String>? validator;
   final bool enabled;
   final int maxLines;
+  final Widget? suffixIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +40,11 @@ class AppTextField extends StatelessWidget {
       validator: validator,
       enabled: enabled,
       maxLines: obscureText ? 1 : maxLines,
-      decoration: InputDecoration(labelText: labelText, hintText: hintText),
+      decoration: InputDecoration(
+        labelText: labelText,
+        hintText: hintText,
+        suffixIcon: suffixIcon,
+      ),
     );
   }
 }
