@@ -526,7 +526,6 @@ String? formatBookingLocation(String? suburb, String? postcode) {
 }
 
 /// Local date label without pulling in an extra package.
-@visibleForTesting
 String formatBookingDate(DateTime date) {
   const months = <String>[
     'Jan',
