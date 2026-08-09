@@ -108,6 +108,49 @@ class SitterServiceRepository {
     }
   }
 
+  /// Active offering by ID for owner booking, with catalogue and sitter summary.
+  Future<SitterServiceModel> getActiveOfferingById(String offeringId) async {
+    _requireUserId();
+
+    final trimmedId = offeringId.trim();
+    if (trimmedId.isEmpty) {
+      throw const SitterServiceException('Offering id is required.');
+    }
+
+    final row = await _client
+        .from('sitter_services')
+        .select(_activeOfferingsSelect)
+        .eq('id', trimmedId)
+        .eq('is_active', true)
+        .maybeSingle();
+
+    if (row == null) {
+      throw const SitterServiceException(
+        'This service offering is unavailable.',
+      );
+    }
+
+    try {
+      final offering = SitterServiceModel.fromMap(
+        Map<String, dynamic>.from(row),
+      );
+      final service = offering.service;
+      if (!offering.isActive ||
+          offering.sitter == null ||
+          service == null ||
+          !service.isActive) {
+        throw const SitterServiceException(
+          'This service offering is unavailable.',
+        );
+      }
+      return offering;
+    } on FormatException {
+      throw const SitterServiceException(
+        'This service offering is unavailable.',
+      );
+    }
+  }
+
   Future<SitterServiceModel> createSitterService({
     required String serviceId,
     required double price,

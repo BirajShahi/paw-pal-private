@@ -8,6 +8,7 @@ import '../../features/auth/auth_providers.dart';
 import '../../features/auth/auth_role.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/register_screen.dart';
+import '../../features/bookings/create_booking_screen.dart';
 import '../../features/bookings/owner_bookings_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/map/nearby_sitters_map_screen.dart';
@@ -46,6 +47,8 @@ abstract final class AppRoutes {
 
   static String sitterServiceEdit(String offeringId) =>
       '/sitter-services/$offeringId/edit';
+
+  static String bookingNew(String offeringId) => '/bookings/new/$offeringId';
 }
 
 const _publicRoutes = <String>{
@@ -72,8 +75,13 @@ const _sitterRoutes = <String>{
 
 bool _isOwnerRoute(String location) {
   if (_ownerRoutes.contains(location)) return true;
-  return location.startsWith('${AppRoutes.pets}/');
+  return location.startsWith('${AppRoutes.pets}/') ||
+      location.startsWith('${AppRoutes.bookings}/');
 }
+
+/// Exposed for focused route-protection tests.
+@visibleForTesting
+bool isOwnerRouteLocation(String location) => _isOwnerRoute(location);
 
 bool _isSitterRoute(String location) {
   if (_sitterRoutes.contains(location)) return true;
@@ -143,6 +151,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.aiRecommendation,
         builder: (context, state) => const AiRecommendationScreen(),
+      ),
+      GoRoute(
+        path: '/bookings/new/:offeringId',
+        builder: (context, state) {
+          final offeringId = state.pathParameters['offeringId']!;
+          return CreateBookingScreen(offeringId: offeringId);
+        },
       ),
       GoRoute(
         path: AppRoutes.petNew,

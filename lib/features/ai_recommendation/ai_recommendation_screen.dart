@@ -485,6 +485,11 @@ class _ProviderMatchCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(description, style: theme.textTheme.bodyMedium),
             ],
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: () => context.push(AppRoutes.bookingNew(offering.id)),
+              child: const Text('Book This Service'),
+            ),
           ],
         ),
       ),
