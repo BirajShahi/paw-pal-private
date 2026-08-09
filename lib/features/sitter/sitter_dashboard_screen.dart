@@ -88,6 +88,13 @@ class _SitterDashboardScreenState extends ConsumerState<SitterDashboardScreen> {
                             : () => context.go(AppRoutes.sitterServices),
                       ),
                       const SizedBox(height: 12),
+                      PrimaryButton(
+                        label: 'Booking Requests',
+                        onPressed: _isLoggingOut
+                            ? null
+                            : () => context.go(AppRoutes.sitterBookings),
+                      ),
+                      const SizedBox(height: 12),
                       if (_errorMessage != null) ...[
                         ErrorMessage(message: _errorMessage!),
                         const SizedBox(height: 16),

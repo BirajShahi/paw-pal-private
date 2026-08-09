@@ -10,6 +10,7 @@ import '../../features/auth/login_screen.dart';
 import '../../features/auth/register_screen.dart';
 import '../../features/bookings/create_booking_screen.dart';
 import '../../features/bookings/owner_bookings_screen.dart';
+import '../../features/bookings/sitter_bookings_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/map/nearby_sitters_map_screen.dart';
 import '../../features/owner/owner_dashboard_screen.dart';
@@ -40,6 +41,7 @@ abstract final class AppRoutes {
   static const sitterProfile = '/sitter-profile';
   static const sitterServices = '/sitter-services';
   static const sitterServiceNew = '/sitter-services/new';
+  static const sitterBookings = '/sitter-bookings';
   static const petNew = '/pets/new';
   static const aiRecommendation = '/ai-recommendation';
 
@@ -71,6 +73,7 @@ const _sitterRoutes = <String>{
   AppRoutes.sitterDashboard,
   AppRoutes.sitterProfile,
   AppRoutes.sitterServices,
+  AppRoutes.sitterBookings,
 };
 
 bool _isOwnerRoute(String location) {
@@ -87,6 +90,10 @@ bool _isSitterRoute(String location) {
   if (_sitterRoutes.contains(location)) return true;
   return location.startsWith('${AppRoutes.sitterServices}/');
 }
+
+/// Exposed for focused route-protection tests.
+@visibleForTesting
+bool isSitterRouteLocation(String location) => _isSitterRoute(location);
 
 /// GoRouter wired to Riverpod auth/role state for redirects.
 final goRouterProvider = Provider<GoRouter>((ref) {
@@ -132,6 +139,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.sitterServices,
         builder: (context, state) => const SitterServicesScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.sitterBookings,
+        builder: (context, state) => const SitterBookingsScreen(),
       ),
       GoRoute(
         path: AppRoutes.sitterServiceNew,

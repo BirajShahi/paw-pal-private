@@ -501,7 +501,6 @@ String bookingStatusDescription(BookingStatus status) {
 }
 
 /// Local time label without installing a package.
-@visibleForTesting
 String formatBookingTime(DateTime dateTime) {
   final local = dateTime.toLocal();
   final hour = local.hour;
