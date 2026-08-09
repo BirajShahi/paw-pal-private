@@ -164,7 +164,7 @@ class OwnerBookingsScreen extends ConsumerWidget {
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _OwnerBookingCard(
                     booking: bookings[index],
-                    onCancelled: () async {
+                    onUpdated: () async {
                       ref.invalidate(currentOwnerBookingsProvider);
                       ref.invalidate(bookingByIdProvider(bookings[index].id));
                       await ref.read(currentOwnerBookingsProvider.future);
@@ -246,10 +246,10 @@ class _EmptyBookingsState extends StatelessWidget {
 }
 
 class _OwnerBookingCard extends ConsumerStatefulWidget {
-  const _OwnerBookingCard({required this.booking, required this.onCancelled});
+  const _OwnerBookingCard({required this.booking, required this.onUpdated});
 
   final BookingModel booking;
-  final Future<void> Function() onCancelled;
+  final Future<void> Function() onUpdated;
 
   @override
   ConsumerState<_OwnerBookingCard> createState() => _OwnerBookingCardState();
@@ -257,6 +257,8 @@ class _OwnerBookingCard extends ConsumerStatefulWidget {
 
 class _OwnerBookingCardState extends ConsumerState<_OwnerBookingCard> {
   bool get _canCancel => canOwnerCancelBooking(widget.booking);
+
+  bool get _canDemoPay => canOwnerDemoPayBooking(widget.booking);
 
   Future<void> _confirmCancel() async {
     if (!_canCancel) return;
@@ -290,7 +292,7 @@ class _OwnerBookingCardState extends ConsumerState<_OwnerBookingCard> {
                   Navigator.of(dialogContext).pop();
                 }
 
-                await widget.onCancelled();
+                await widget.onUpdated();
                 messenger.showSnackBar(
                   SnackBar(
                     content: Text('$serviceName booking was cancelled.'),
@@ -362,6 +364,117 @@ class _OwnerBookingCardState extends ConsumerState<_OwnerBookingCard> {
     );
   }
 
+  Future<void> _confirmDemoPay() async {
+    if (!_canDemoPay) return;
+
+    final booking = widget.booking;
+    final serviceName = booking.serviceNameSnapshot;
+    final amount = SitterServicesScreen.formatPrice(booking.priceSnapshot);
+    final bookingId = booking.id;
+    final messenger = ScaffoldMessenger.of(context);
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        var dialogBusy = false;
+        String? dialogError;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            Future<void> confirm() async {
+              if (dialogBusy) return;
+              setDialogState(() {
+                dialogBusy = true;
+                dialogError = null;
+              });
+
+              try {
+                await ref
+                    .read(bookingRepositoryProvider)
+                    .demoPayBooking(bookingId);
+
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
+
+                await widget.onUpdated();
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Demo payment completed for $serviceName.'),
+                  ),
+                );
+              } on BookingException catch (error) {
+                if (!context.mounted) return;
+                setDialogState(() {
+                  dialogBusy = false;
+                  dialogError = error.message;
+                });
+              } catch (_) {
+                if (!context.mounted) return;
+                setDialogState(() {
+                  dialogBusy = false;
+                  dialogError =
+                      'Unable to complete the demo payment. Please try again.';
+                });
+              }
+            }
+
+            return PopScope(
+              canPop: !dialogBusy,
+              child: AlertDialog(
+                title: const Text('Demo payment'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'This is a simulated payment for the PawPal university '
+                      'project. No real money will be charged and no card or '
+                      'banking information is required.',
+                    ),
+                    const SizedBox(height: 16),
+                    Text('Service: $serviceName'),
+                    const SizedBox(height: 4),
+                    Text('Amount: $amount'),
+                    if (dialogError != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        dialogError!,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: dialogBusy
+                        ? null
+                        : () => Navigator.of(dialogContext).pop(),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    key: const Key('confirm_demo_pay_booking'),
+                    onPressed: dialogBusy ? null : confirm,
+                    child: dialogBusy
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Confirm Demo Payment'),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -417,10 +530,7 @@ class _OwnerBookingCardState extends ConsumerState<_OwnerBookingCard> {
                   visualDensity: VisualDensity.compact,
                 ),
                 if (showPayment)
-                  Chip(
-                    label: Text(booking.paymentStatus.displayName),
-                    visualDensity: VisualDensity.compact,
-                  ),
+                  _paymentStatusChip(theme, booking.paymentStatus),
               ],
             ),
             const SizedBox(height: 4),
@@ -432,17 +542,44 @@ class _OwnerBookingCardState extends ConsumerState<_OwnerBookingCard> {
               const SizedBox(height: 12),
               Text('“$notes”', style: theme.textTheme.bodyMedium),
             ],
-            if (_canCancel) ...[
+            if (_canDemoPay || _canCancel) ...[
               const SizedBox(height: 16),
-              OutlinedButton(
-                key: Key('cancel_booking_${booking.id}'),
-                onPressed: _confirmCancel,
-                child: const Text('Cancel Booking'),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (_canDemoPay)
+                    FilledButton(
+                      key: Key('demo_pay_booking_${booking.id}'),
+                      onPressed: _confirmDemoPay,
+                      child: const Text('Demo Pay'),
+                    ),
+                  if (_canCancel)
+                    OutlinedButton(
+                      key: Key('cancel_booking_${booking.id}'),
+                      onPressed: _confirmCancel,
+                      child: const Text('Cancel Booking'),
+                    ),
+                ],
               ),
             ],
           ],
         ),
       ),
+    );
+  }
+
+  Widget _paymentStatusChip(ThemeData theme, BookingPaymentStatus status) {
+    final isDemoPaid = status == BookingPaymentStatus.demoPaid;
+    return Chip(
+      label: Text(status.displayName),
+      visualDensity: VisualDensity.compact,
+      backgroundColor: isDemoPaid ? theme.colorScheme.primaryContainer : null,
+      labelStyle: isDemoPaid
+          ? theme.textTheme.labelLarge?.copyWith(
+              color: theme.colorScheme.onPrimaryContainer,
+            )
+          : null,
     );
   }
 }
@@ -486,6 +623,13 @@ bool isUpcomingOwnerBooking(BookingModel booking, {DateTime? now}) {
 bool canOwnerCancelBooking(BookingModel booking) {
   return booking.status == BookingStatus.pending ||
       booking.status == BookingStatus.accepted;
+}
+
+/// Whether the owner may run the simulated demo payment action.
+@visibleForTesting
+bool canOwnerDemoPayBooking(BookingModel booking) {
+  return booking.status == BookingStatus.accepted &&
+      booking.paymentStatus == BookingPaymentStatus.unpaid;
 }
 
 /// Short status explanation shown under the status chip.

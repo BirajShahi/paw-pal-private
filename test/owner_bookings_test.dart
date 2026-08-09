@@ -51,9 +51,12 @@ class _RecordingBookingRepository extends BookingRepository {
   _RecordingBookingRepository(super.client);
 
   int cancelCalls = 0;
+  int demoPayCalls = 0;
   Object? throwOnCancel;
+  Object? throwOnDemoPay;
   Duration delay = Duration.zero;
   final List<String> cancelIds = [];
+  final List<String> demoPayIds = [];
 
   @override
   Future<BookingModel> cancelBooking(String bookingId) async {
@@ -87,11 +90,45 @@ class _RecordingBookingRepository extends BookingRepository {
       updatedAt: DateTime.utc(2026, 8, 9),
     );
   }
+
+  @override
+  Future<BookingModel> demoPayBooking(String bookingId) async {
+    demoPayCalls++;
+    demoPayIds.add(bookingId);
+
+    if (delay > Duration.zero) {
+      await Future<void>.delayed(delay);
+    }
+
+    if (throwOnDemoPay != null) {
+      throw throwOnDemoPay!;
+    }
+
+    return BookingModel(
+      id: bookingId,
+      ownerId: 'owner-1',
+      petId: 'pet-1',
+      sitterId: 'sitter-1',
+      sitterServiceId: 'offer-1',
+      petNameSnapshot: 'Milo',
+      serviceCodeSnapshot: 'dog_walk',
+      serviceNameSnapshot: 'Dog Walking',
+      priceSnapshot: 30,
+      estimatedDurationMinutes: 45,
+      requestedStart: DateTime.now().add(const Duration(days: 2)),
+      ownerNotes: 'Please keep him on the leash.',
+      status: BookingStatus.accepted,
+      paymentStatus: BookingPaymentStatus.demoPaid,
+      createdAt: DateTime.utc(2026, 8, 1),
+      updatedAt: DateTime.utc(2026, 8, 9),
+    );
+  }
 }
 
 BookingModel _booking({
   String id = 'booking-1',
   BookingStatus status = BookingStatus.pending,
+  BookingPaymentStatus paymentStatus = BookingPaymentStatus.unpaid,
   DateTime? requestedStart,
   String serviceName = 'Dog Walking',
   String petName = 'Milo',
@@ -114,7 +151,7 @@ BookingModel _booking({
         requestedStart ?? DateTime.now().add(const Duration(days: 3)),
     ownerNotes: notes,
     status: status,
-    paymentStatus: BookingPaymentStatus.unpaid,
+    paymentStatus: paymentStatus,
     createdAt: DateTime.utc(2026, 8, 1),
     updatedAt: DateTime.utc(2026, 8, 1),
   );
@@ -204,6 +241,39 @@ void main() {
       );
       expect(
         canOwnerCancelBooking(_booking(status: BookingStatus.completed)),
+        isFalse,
+      );
+    });
+
+    test('demo pay eligibility is only accepted and unpaid', () {
+      expect(
+        canOwnerDemoPayBooking(_booking(status: BookingStatus.accepted)),
+        isTrue,
+      );
+      expect(
+        canOwnerDemoPayBooking(_booking(status: BookingStatus.pending)),
+        isFalse,
+      );
+      expect(
+        canOwnerDemoPayBooking(
+          _booking(
+            status: BookingStatus.accepted,
+            paymentStatus: BookingPaymentStatus.demoPaid,
+          ),
+        ),
+        isFalse,
+      );
+      expect(
+        canOwnerDemoPayBooking(
+          _booking(
+            status: BookingStatus.accepted,
+            paymentStatus: BookingPaymentStatus.demoRefunded,
+          ),
+        ),
+        isFalse,
+      );
+      expect(
+        canOwnerDemoPayBooking(_booking(status: BookingStatus.completed)),
         isFalse,
       );
     });
@@ -318,6 +388,42 @@ void main() {
         find.byKey(const Key('cancel_booking_accepted-1')),
         findsOneWidget,
       );
+      expect(find.byKey(const Key('demo_pay_booking_pending-1')), findsNothing);
+      expect(
+        find.byKey(const Key('demo_pay_booking_accepted-1')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Demo Pay hidden for demo paid and refunded bookings', (
+      tester,
+    ) async {
+      bookings = [
+        _booking(
+          id: 'paid-1',
+          status: BookingStatus.accepted,
+          paymentStatus: BookingPaymentStatus.demoPaid,
+        ),
+        _booking(
+          id: 'refunded-1',
+          status: BookingStatus.cancelled,
+          paymentStatus: BookingPaymentStatus.demoRefunded,
+          requestedStart: DateTime.now().subtract(const Duration(days: 1)),
+        ),
+      ];
+      await pumpScreen(tester);
+
+      expect(find.byKey(const Key('demo_pay_booking_paid-1')), findsNothing);
+      expect(
+        find.byKey(const Key('demo_pay_booking_refunded-1')),
+        findsNothing,
+      );
+      expect(find.text('Demo Paid'), findsOneWidget);
+      expect(find.text('Demo Refunded'), findsOneWidget);
+      expect(find.text('Paid'), findsNothing);
+      expect(find.byType(TextField), findsNothing);
+      expect(find.textContaining('card'), findsNothing);
+      expect(find.textContaining('CVV'), findsNothing);
     });
 
     testWidgets('history bookings hide cancel and use History section', (
@@ -415,6 +521,80 @@ void main() {
       expect(find.text('Cancel booking?'), findsOneWidget);
       expect(find.text('Dog Walking'), findsOneWidget);
       expect(repository.cancelCalls, 1);
+    });
+
+    testWidgets('dismissing demo pay dialog does not call repository', (
+      tester,
+    ) async {
+      bookings = [_booking(id: 'accepted-1', status: BookingStatus.accepted)];
+      await pumpScreen(tester);
+
+      await tester.tap(find.byKey(const Key('demo_pay_booking_accepted-1')));
+      await tester.pumpAndSettle();
+      expect(find.text('Demo payment'), findsOneWidget);
+      expect(
+        find.textContaining('No real money will be charged'),
+        findsOneWidget,
+      );
+      expect(find.text('Service: Dog Walking'), findsOneWidget);
+      expect(find.text(r'Amount: $30.00'), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(repository.demoPayCalls, 0);
+      expect(find.text('Demo payment'), findsNothing);
+    });
+
+    testWidgets('confirm demo pay calls repository once and refreshes', (
+      tester,
+    ) async {
+      bookings = [_booking(id: 'accepted-1', status: BookingStatus.accepted)];
+      await pumpScreen(tester);
+      repository.delay = const Duration(milliseconds: 250);
+      final loadsBefore = bookingsLoads;
+
+      await tester.tap(find.byKey(const Key('demo_pay_booking_accepted-1')));
+      await tester.pumpAndSettle();
+
+      final confirm = find.byKey(const Key('confirm_demo_pay_booking'));
+      await tester.tap(confirm);
+      await tester.pump();
+      await tester.tap(confirm);
+      await tester.pump();
+
+      expect(repository.demoPayCalls, 1);
+      await tester.pumpAndSettle();
+
+      expect(repository.demoPayCalls, 1);
+      expect(repository.demoPayIds, ['accepted-1']);
+      expect(bookingsLoads, greaterThan(loadsBefore));
+      expect(
+        find.text('Demo payment completed for Dog Walking.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('demo pay failure shows error and keeps list', (tester) async {
+      bookings = [_booking(id: 'accepted-1', status: BookingStatus.accepted)];
+      await pumpScreen(tester);
+      repository.throwOnDemoPay = const BookingException(
+        'This booking has already been demo paid.',
+      );
+
+      await tester.tap(find.byKey(const Key('demo_pay_booking_accepted-1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('confirm_demo_pay_booking')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('This booking has already been demo paid.'),
+        findsOneWidget,
+      );
+      expect(find.text('Demo payment'), findsOneWidget);
+      expect(find.text('Dog Walking'), findsOneWidget);
+      expect(repository.demoPayCalls, 1);
     });
   });
 }

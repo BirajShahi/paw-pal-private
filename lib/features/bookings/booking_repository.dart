@@ -159,6 +159,54 @@ class BookingRepository {
     );
   }
 
+  /// Simulated owner payment via `demo_pay_booking` RPC.
+  ///
+  /// Does not process real money and never updates payment_status directly.
+  Future<BookingModel> demoPayBooking(String bookingId) async {
+    _requireUserId();
+    final trimmedId = bookingId.trim();
+    if (trimmedId.isEmpty) {
+      throw const BookingException('Booking id is required.');
+    }
+
+    try {
+      final row = await _client.rpc(
+        'demo_pay_booking',
+        params: {'p_booking_id': trimmedId},
+      );
+
+      final map = _asBookingMap(row);
+      if (map == null) {
+        throw const BookingException('This booking is unavailable.');
+      }
+
+      return BookingModel.fromMap(map);
+    } on PostgrestException catch (error) {
+      throw BookingException(_mapDemoPayError(error));
+    } on FormatException catch (error) {
+      throw BookingException(error.message);
+    }
+  }
+
+  static Map<String, dynamic>? _asBookingMap(Object? row) {
+    if (row is Map<String, dynamic>) {
+      return row;
+    }
+    if (row is Map) {
+      return Map<String, dynamic>.from(row);
+    }
+    if (row is List && row.isNotEmpty) {
+      final first = row.first;
+      if (first is Map<String, dynamic>) {
+        return first;
+      }
+      if (first is Map) {
+        return Map<String, dynamic>.from(first);
+      }
+    }
+    return null;
+  }
+
   Future<BookingModel> _updateStatus({
     required String bookingId,
     required BookingStatus status,
@@ -228,5 +276,26 @@ class BookingRepository {
     }
 
     return 'Unable to update this booking. Please try again.';
+  }
+
+  static String _mapDemoPayError(PostgrestException error) {
+    final message = error.message.toLowerCase();
+
+    if (message.contains('already been demo paid') ||
+        message.contains('already been demo_paid')) {
+      return 'This booking has already been demo paid.';
+    }
+    if (message.contains('already been demo refunded') ||
+        message.contains('already been refunded')) {
+      return 'This booking has already been refunded.';
+    }
+    if (message.contains('only accepted bookings')) {
+      return 'Only accepted bookings can be demo paid.';
+    }
+    if (message.contains('unavailable')) {
+      return 'This booking is unavailable.';
+    }
+
+    return 'Unable to complete the demo payment. Please try again.';
   }
 }
