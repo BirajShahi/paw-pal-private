@@ -23,7 +23,7 @@ import '../../features/services/add_sitter_service_screen.dart';
 import '../../features/services/edit_sitter_service_screen.dart';
 import '../../features/services/sitter_services_screen.dart';
 import '../../features/sitter/sitter_dashboard_screen.dart';
-import '../../features/sitters/sitter_list_screen.dart';
+import '../../features/sitters/sitter_discovery_screen.dart';
 
 /// Application route path constants.
 abstract final class AppRoutes {
@@ -206,7 +206,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: AppRoutes.sitters,
-                builder: (context, state) => const SitterListScreen(),
+                builder: (context, state) => const SitterDiscoveryScreen(),
               ),
             ],
           ),

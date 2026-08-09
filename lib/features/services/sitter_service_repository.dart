@@ -27,6 +27,14 @@ const _activeOfferingsSelect =
     'created_at, updated_at ), '
     'profiles ( id, full_name, suburb, postcode, service_description )';
 
+const _discoveryOfferingsSelect =
+    'id, sitter_id, service_id, price, estimated_duration_minutes, '
+    'service_notes, is_active, created_at, updated_at, '
+    'services!inner ( id, code, name, category, description, included_items, '
+    'recommendation_tags, can_be_add_on, is_active, display_order, '
+    'created_at, updated_at ), '
+    'profiles!inner ( id, full_name, suburb, postcode, service_description )';
+
 /// Supabase access for `public.sitter_services`.
 class SitterServiceRepository {
   SitterServiceRepository(this._client);
@@ -78,6 +86,41 @@ class SitterServiceRepository {
         offerings.add(offering);
       } on FormatException {
         // Skip malformed rows that cannot form a valid match listing.
+      }
+    }
+    return offerings;
+  }
+
+  /// All active offerings for owner discovery, with catalogue and sitter data.
+  Future<List<SitterServiceModel>> getAllActiveSitterOfferings() async {
+    _requireUserId();
+
+    final rows = await _client
+        .from('sitter_services')
+        .select(_discoveryOfferingsSelect)
+        .eq('is_active', true)
+        .eq('services.is_active', true)
+        .eq('profiles.role', 'sitter')
+        .order('full_name', ascending: true, referencedTable: 'profiles')
+        .order('display_order', ascending: true, referencedTable: 'services')
+        .order('price', ascending: true);
+
+    final offerings = <SitterServiceModel>[];
+    for (final row in rows as List<dynamic>) {
+      try {
+        final offering = SitterServiceModel.fromMap(
+          Map<String, dynamic>.from(row as Map),
+        );
+        final service = offering.service;
+        if (!offering.isActive ||
+            offering.sitter == null ||
+            service == null ||
+            !service.isActive) {
+          continue;
+        }
+        offerings.add(offering);
+      } on FormatException {
+        // Skip malformed rows that cannot form a valid discovery listing.
       }
     }
     return offerings;
