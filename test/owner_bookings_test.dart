@@ -419,12 +419,38 @@ void main() {
         findsNothing,
       );
       expect(find.text('Demo Paid'), findsOneWidget);
+      expect(find.text('Cancelled'), findsWidgets);
       expect(find.text('Demo Refunded'), findsOneWidget);
+      expect(find.byKey(const Key('cancel_booking_refunded-1')), findsNothing);
       expect(find.text('Paid'), findsNothing);
       expect(find.byType(TextField), findsNothing);
       expect(find.textContaining('card'), findsNothing);
       expect(find.textContaining('CVV'), findsNothing);
     });
+
+    testWidgets(
+      'accepted demo-paid booking can still cancel and shows Demo Paid',
+      (tester) async {
+        bookings = [
+          _booking(
+            id: 'paid-accepted',
+            status: BookingStatus.accepted,
+            paymentStatus: BookingPaymentStatus.demoPaid,
+          ),
+        ];
+        await pumpScreen(tester);
+
+        expect(find.text('Demo Paid'), findsOneWidget);
+        expect(
+          find.byKey(const Key('demo_pay_booking_paid-accepted')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const Key('cancel_booking_paid-accepted')),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets('history bookings hide cancel and use History section', (
       tester,

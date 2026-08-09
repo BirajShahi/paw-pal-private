@@ -436,7 +436,11 @@ class _SitterBookingCardState extends ConsumerState<_SitterBookingCard> {
               const SizedBox(height: 12),
               Text('Owner notes:', style: theme.textTheme.titleSmall),
               const SizedBox(height: 4),
-              Text('“$notes”', style: theme.textTheme.bodyMedium),
+              Text(
+                '“$notes”',
+                style: theme.textTheme.bodyMedium,
+                softWrap: true,
+              ),
             ],
             const SizedBox(height: 12),
             Wrap(
@@ -448,10 +452,7 @@ class _SitterBookingCardState extends ConsumerState<_SitterBookingCard> {
                   visualDensity: VisualDensity.compact,
                 ),
                 if (showPayment)
-                  Chip(
-                    label: Text(booking.paymentStatus.displayName),
-                    visualDensity: VisualDensity.compact,
-                  ),
+                  bookingPaymentStatusChip(theme, booking.paymentStatus),
               ],
             ),
             const SizedBox(height: 4),

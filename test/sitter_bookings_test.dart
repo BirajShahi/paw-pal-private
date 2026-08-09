@@ -111,6 +111,7 @@ class _RecordingBookingRepository extends BookingRepository {
 BookingModel _booking({
   String id = 'booking-1',
   BookingStatus status = BookingStatus.pending,
+  BookingPaymentStatus paymentStatus = BookingPaymentStatus.unpaid,
   DateTime? requestedStart,
   String serviceName = 'Dog Walking',
   String petName = 'Milo',
@@ -133,7 +134,7 @@ BookingModel _booking({
         requestedStart ?? DateTime.now().add(const Duration(days: 3)),
     ownerNotes: notes,
     status: status,
-    paymentStatus: BookingPaymentStatus.unpaid,
+    paymentStatus: paymentStatus,
     createdAt: DateTime.utc(2026, 8, 1),
     updatedAt: DateTime.utc(2026, 8, 1),
   );
@@ -361,6 +362,86 @@ void main() {
       );
       expect(
         find.byKey(const Key('accept_booking_accepted-past')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('declined and completed bookings show no sitter actions', (
+      tester,
+    ) async {
+      final past = DateTime.now().subtract(const Duration(days: 1));
+      bookings = [
+        _booking(
+          id: 'declined-1',
+          status: BookingStatus.declined,
+          requestedStart: past,
+        ),
+        _booking(
+          id: 'completed-1',
+          status: BookingStatus.completed,
+          requestedStart: past,
+          serviceName: 'Home Visit',
+        ),
+        _booking(
+          id: 'cancelled-1',
+          status: BookingStatus.cancelled,
+          paymentStatus: BookingPaymentStatus.demoRefunded,
+          requestedStart: past,
+          serviceName: 'Cancelled Walk',
+        ),
+      ];
+      await pumpScreen(tester);
+
+      expect(find.text('History'), findsOneWidget);
+      expect(find.text('Declined'), findsWidgets);
+      expect(find.text('Completed'), findsWidgets);
+      expect(find.text('Cancelled'), findsWidgets);
+      expect(find.text('Demo Refunded'), findsOneWidget);
+      expect(find.byKey(const Key('accept_booking_declined-1')), findsNothing);
+      expect(find.byKey(const Key('decline_booking_declined-1')), findsNothing);
+      expect(
+        find.byKey(const Key('complete_booking_declined-1')),
+        findsNothing,
+      );
+      expect(find.byKey(const Key('accept_booking_completed-1')), findsNothing);
+      expect(
+        find.byKey(const Key('decline_booking_completed-1')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('complete_booking_completed-1')),
+        findsNothing,
+      );
+      expect(find.byKey(const Key('accept_booking_cancelled-1')), findsNothing);
+      expect(
+        find.byKey(const Key('complete_booking_cancelled-1')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('future accepted booking cannot be completed', (tester) async {
+      bookings = [
+        _booking(
+          id: 'accepted-future',
+          status: BookingStatus.accepted,
+          requestedStart: DateTime.now().add(const Duration(days: 2)),
+          paymentStatus: BookingPaymentStatus.demoPaid,
+        ),
+      ];
+      await pumpScreen(tester);
+
+      expect(find.text('Upcoming'), findsOneWidget);
+      expect(find.text('Demo Paid'), findsOneWidget);
+      expect(
+        find.byKey(const Key('complete_booking_accepted-future')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('accept_booking_accepted-future')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('decline_booking_accepted-future')),
         findsNothing,
       );
     });

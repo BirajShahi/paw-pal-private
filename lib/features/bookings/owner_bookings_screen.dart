@@ -530,7 +530,7 @@ class _OwnerBookingCardState extends ConsumerState<_OwnerBookingCard> {
                   visualDensity: VisualDensity.compact,
                 ),
                 if (showPayment)
-                  _paymentStatusChip(theme, booking.paymentStatus),
+                  bookingPaymentStatusChip(theme, booking.paymentStatus),
               ],
             ),
             const SizedBox(height: 4),
@@ -540,7 +540,11 @@ class _OwnerBookingCardState extends ConsumerState<_OwnerBookingCard> {
             ),
             if (notes != null && notes.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text('“$notes”', style: theme.textTheme.bodyMedium),
+              Text(
+                '“$notes”',
+                style: theme.textTheme.bodyMedium,
+                softWrap: true,
+              ),
             ],
             if (_canDemoPay || _canCancel) ...[
               const SizedBox(height: 16),
@@ -568,20 +572,21 @@ class _OwnerBookingCardState extends ConsumerState<_OwnerBookingCard> {
       ),
     );
   }
+}
 
-  Widget _paymentStatusChip(ThemeData theme, BookingPaymentStatus status) {
-    final isDemoPaid = status == BookingPaymentStatus.demoPaid;
-    return Chip(
-      label: Text(status.displayName),
-      visualDensity: VisualDensity.compact,
-      backgroundColor: isDemoPaid ? theme.colorScheme.primaryContainer : null,
-      labelStyle: isDemoPaid
-          ? theme.textTheme.labelLarge?.copyWith(
-              color: theme.colorScheme.onPrimaryContainer,
-            )
-          : null,
-    );
-  }
+/// Shared payment-status chip for owner and sitter booking cards.
+Widget bookingPaymentStatusChip(ThemeData theme, BookingPaymentStatus status) {
+  final isDemoPaid = status == BookingPaymentStatus.demoPaid;
+  return Chip(
+    label: Text(status.displayName),
+    visualDensity: VisualDensity.compact,
+    backgroundColor: isDemoPaid ? theme.colorScheme.primaryContainer : null,
+    labelStyle: isDemoPaid
+        ? theme.textTheme.labelLarge?.copyWith(
+            color: theme.colorScheme.onPrimaryContainer,
+          )
+        : null,
+  );
 }
 
 /// Split owner bookings into Upcoming and History sections.
