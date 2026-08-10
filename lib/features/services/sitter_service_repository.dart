@@ -25,7 +25,8 @@ const _activeOfferingsSelect =
     'services ( id, code, name, category, description, included_items, '
     'recommendation_tags, can_be_add_on, is_active, display_order, '
     'created_at, updated_at ), '
-    'profiles ( id, full_name, suburb, postcode, service_description )';
+    'profiles ( id, full_name, suburb, postcode, service_description, '
+    'latitude, longitude )';
 
 const _discoveryOfferingsSelect =
     'id, sitter_id, service_id, price, estimated_duration_minutes, '
@@ -33,7 +34,8 @@ const _discoveryOfferingsSelect =
     'services!inner ( id, code, name, category, description, included_items, '
     'recommendation_tags, can_be_add_on, is_active, display_order, '
     'created_at, updated_at ), '
-    'profiles!inner ( id, full_name, suburb, postcode, service_description )';
+    'profiles!inner ( id, full_name, suburb, postcode, service_description, '
+    'latitude, longitude )';
 
 /// Supabase access for `public.sitter_services`.
 class SitterServiceRepository {

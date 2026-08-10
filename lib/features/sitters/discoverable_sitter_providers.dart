@@ -22,3 +22,12 @@ final discoverableSittersProvider = FutureProvider<List<DiscoverableSitter>>((
 
   return groupOfferingsIntoDiscoverableSitters(offerings);
 });
+
+/// Map-ready providers derived from [discoverableSittersProvider].
+/// Does not query Supabase again. Refresh by invalidating discovery.
+final mapSittersProvider = FutureProvider<List<DiscoverableSitter>>((
+  ref,
+) async {
+  final sitters = await ref.watch(discoverableSittersProvider.future);
+  return mapReadySitters(sitters);
+});

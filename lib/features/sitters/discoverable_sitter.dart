@@ -8,12 +8,16 @@ class DiscoverableSitter {
     String? suburb,
     String? postcode,
     String? serviceDescription,
+    double? latitude,
+    double? longitude,
     required List<SitterServiceModel> offerings,
   }) : id = id.trim(),
        fullName = fullName.trim(),
        suburb = _trimOrNull(suburb),
        postcode = _trimOrNull(postcode),
        serviceDescription = _trimOrNull(serviceDescription),
+       latitude = _validatedLatitude(latitude),
+       longitude = _validatedLongitude(longitude),
        offerings = List.unmodifiable(
          offerings.where((offering) => offering.isActive),
        ) {
@@ -30,12 +34,33 @@ class DiscoverableSitter {
   final String? suburb;
   final String? postcode;
   final String? serviceDescription;
+  final double? latitude;
+  final double? longitude;
   final List<SitterServiceModel> offerings;
+
+  /// True when both stored coordinates are present and valid.
+  bool get isMapReady => latitude != null && longitude != null;
 
   static String? _trimOrNull(String? value) {
     if (value == null) return null;
     final trimmed = value.trim();
     return trimmed.isEmpty ? null : trimmed;
+  }
+
+  static double? _validatedLatitude(double? value) {
+    if (value == null) return null;
+    if (value < -90 || value > 90) {
+      throw const FormatException('Latitude must be between -90 and 90.');
+    }
+    return value;
+  }
+
+  static double? _validatedLongitude(double? value) {
+    if (value == null) return null;
+    if (value < -180 || value > 180) {
+      throw const FormatException('Longitude must be between -180 and 180.');
+    }
+    return value;
   }
 }
 
@@ -55,6 +80,8 @@ List<DiscoverableSitter> groupOfferingsIntoDiscoverableSitters(
           String? suburb,
           String? postcode,
           String? serviceDescription,
+          double? latitude,
+          double? longitude,
         })
       >{};
 
@@ -74,6 +101,8 @@ List<DiscoverableSitter> groupOfferingsIntoDiscoverableSitters(
         suburb: sitter.suburb,
         postcode: sitter.postcode,
         serviceDescription: sitter.serviceDescription,
+        latitude: sitter.latitude,
+        longitude: sitter.longitude,
       ),
     );
   }
@@ -87,6 +116,8 @@ List<DiscoverableSitter> groupOfferingsIntoDiscoverableSitters(
           suburb: profiles[entry.key]!.suburb,
           postcode: profiles[entry.key]!.postcode,
           serviceDescription: profiles[entry.key]!.serviceDescription,
+          latitude: profiles[entry.key]!.latitude,
+          longitude: profiles[entry.key]!.longitude,
           offerings: entry.value,
         ),
   ];
@@ -135,6 +166,8 @@ List<DiscoverableSitter> filterDiscoverableSitters(
           suburb: sitter.suburb,
           postcode: sitter.postcode,
           serviceDescription: sitter.serviceDescription,
+          latitude: sitter.latitude,
+          longitude: sitter.longitude,
           offerings: offerings,
         ),
       );
@@ -142,6 +175,14 @@ List<DiscoverableSitter> filterDiscoverableSitters(
   }
 
   return filtered;
+}
+
+/// Sitters with both valid latitude and longitude for map markers.
+List<DiscoverableSitter> mapReadySitters(List<DiscoverableSitter> sitters) {
+  return [
+    for (final sitter in sitters)
+      if (sitter.isMapReady) sitter,
+  ];
 }
 
 bool _matchesSearch(DiscoverableSitter sitter, String normalisedQuery) {

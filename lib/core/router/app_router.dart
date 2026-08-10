@@ -12,7 +12,7 @@ import '../../features/bookings/create_booking_screen.dart';
 import '../../features/bookings/owner_bookings_screen.dart';
 import '../../features/bookings/sitter_bookings_screen.dart';
 import '../../features/home/home_screen.dart';
-import '../../features/map/nearby_sitters_map_screen.dart';
+import '../../features/map/sitter_map_screen.dart';
 import '../../features/owner/owner_dashboard_screen.dart';
 import '../../features/owner/owner_shell.dart';
 import '../../features/pets/pet_form_screen.dart';
@@ -214,7 +214,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: AppRoutes.map,
-                builder: (context, state) => const NearbySittersMapScreen(),
+                builder: (context, state) => const SitterMapScreen(),
               ),
             ],
           ),
