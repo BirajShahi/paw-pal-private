@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/widgets/app_content_container.dart';
+import '../../core/widgets/app_section.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/error_message.dart';
 import '../../core/widgets/loading_indicator.dart';
@@ -119,89 +121,79 @@ class _OwnerProfileScreenState extends ConsumerState<OwnerProfileScreen> {
 
             _prefill(profile);
 
-            return LayoutBuilder(
-              builder: (context, constraints) {
-                final horizontalPadding = constraints.maxWidth > 600
-                    ? 48.0
-                    : 24.0;
-
-                return SingleChildScrollView(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: horizontalPadding,
-                    vertical: 24,
-                  ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 480),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            AppTextField(
-                              controller: _fullNameController,
-                              labelText: 'Full name',
-                              textInputAction: TextInputAction.next,
-                              enabled: !_isSaving,
-                              validator: (value) {
-                                final name = value?.trim() ?? '';
-                                if (name.isEmpty) {
-                                  return 'Full name is required';
-                                }
-                                if (name.length < 2) {
-                                  return 'Full name must be at least 2 characters';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            AppTextField(
-                              controller: _suburbController,
-                              labelText: 'Suburb',
-                              textInputAction: TextInputAction.next,
-                              enabled: !_isSaving,
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return 'Suburb is required';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 16),
-                            AppTextField(
-                              controller: _postcodeController,
-                              labelText: 'Postcode',
-                              keyboardType: TextInputType.number,
-                              textInputAction: TextInputAction.done,
-                              enabled: !_isSaving,
-                              validator: (value) {
-                                final postcode = value?.trim() ?? '';
-                                if (postcode.isEmpty) {
-                                  return 'Postcode is required';
-                                }
-                                if (!_postcodePattern.hasMatch(postcode)) {
-                                  return 'Enter a valid 4-digit Australian postcode';
-                                }
-                                return null;
-                              },
-                            ),
-                            const SizedBox(height: 24),
-                            if (_updateError != null) ...[
-                              ErrorMessage(message: _updateError!),
-                              const SizedBox(height: 16),
-                            ],
-                            PrimaryButton(
-                              label: 'Save profile',
-                              isLoading: _isSaving,
-                              onPressed: _isSaving ? null : _save,
-                            ),
-                          ],
-                        ),
+            return SingleChildScrollView(
+              child: AppContentContainer(
+                maxWidth: AppContentWidth.form,
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      AppFormSection(
+                        title: 'Basic Details',
+                        icon: Icons.person_outline,
+                        children: [
+                          AppTextField(
+                            controller: _fullNameController,
+                            labelText: 'Full name',
+                            textInputAction: TextInputAction.next,
+                            enabled: !_isSaving,
+                            validator: (value) {
+                              final name = value?.trim() ?? '';
+                              if (name.isEmpty) {
+                                return 'Full name is required';
+                              }
+                              if (name.length < 2) {
+                                return 'Full name must be at least 2 characters';
+                              }
+                              return null;
+                            },
+                          ),
+                          AppTextField(
+                            controller: _suburbController,
+                            labelText: 'Suburb',
+                            textInputAction: TextInputAction.next,
+                            enabled: !_isSaving,
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Suburb is required';
+                              }
+                              return null;
+                            },
+                          ),
+                          AppTextField(
+                            controller: _postcodeController,
+                            labelText: 'Postcode',
+                            keyboardType: TextInputType.number,
+                            textInputAction: TextInputAction.done,
+                            enabled: !_isSaving,
+                            validator: (value) {
+                              final postcode = value?.trim() ?? '';
+                              if (postcode.isEmpty) {
+                                return 'Postcode is required';
+                              }
+                              if (!_postcodePattern.hasMatch(postcode)) {
+                                return 'Enter a valid 4-digit Australian postcode';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
                       ),
-                    ),
+                      const SizedBox(height: 20),
+                      if (_updateError != null) ...[
+                        ErrorMessage(message: _updateError!),
+                        const SizedBox(height: 12),
+                      ],
+                      PrimaryButton(
+                        label: 'Save profile',
+                        isLoading: _isSaving,
+                        onPressed: _isSaving ? null : _save,
+                      ),
+                    ],
                   ),
-                );
-              },
+                ),
+              ),
             );
           },
         ),

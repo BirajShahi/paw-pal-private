@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
+import '../../core/widgets/app_content_container.dart';
 import '../../core/widgets/error_message.dart';
 import '../../core/widgets/loading_indicator.dart';
 import 'sitter_service_model.dart';
@@ -66,77 +67,53 @@ class SitterServicesScreen extends ConsumerWidget {
 
             return LayoutBuilder(
               builder: (context, constraints) {
-                final horizontalPadding = constraints.maxWidth > 600
-                    ? 48.0
-                    : 16.0;
-
                 return RefreshIndicator(
                   onRefresh: () => _refresh(ref),
                   child: CustomScrollView(
                     physics: const AlwaysScrollableScrollPhysics(),
                     slivers: [
-                      SliverPadding(
-                        padding: EdgeInsets.fromLTRB(
-                          horizontalPadding,
-                          16,
-                          horizontalPadding,
-                          24,
-                        ),
-                        sliver: SliverToBoxAdapter(
-                          child: Center(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 640),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      'Services you offer',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleLarge,
-                                    ),
-                                  ),
-                                  if (kIsWeb)
-                                    IconButton(
-                                      tooltip: 'Refresh',
-                                      onPressed: () => _refresh(ref),
-                                      icon: const Icon(Icons.refresh),
-                                    ),
-                                  IconButton(
-                                    tooltip: 'Add service',
-                                    onPressed: () =>
-                                        context.go(AppRoutes.sitterServiceNew),
-                                    icon: const Icon(Icons.add),
-                                  ),
-                                ],
+                      SliverToBoxAdapter(
+                        child: AppContentContainer(
+                          maxWidth: AppContentWidth.narrow,
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Services you offer',
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
                               ),
-                            ),
+                              if (kIsWeb)
+                                IconButton(
+                                  tooltip: 'Refresh',
+                                  onPressed: () => _refresh(ref),
+                                  icon: const Icon(Icons.refresh),
+                                ),
+                              IconButton(
+                                tooltip: 'Add service',
+                                onPressed: () =>
+                                    context.go(AppRoutes.sitterServiceNew),
+                                icon: const Icon(Icons.add),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                      SliverPadding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: horizontalPadding,
-                        ),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate((
-                            context,
-                            index,
-                          ) {
-                            return Center(
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  maxWidth: 640,
-                                ),
-                                child: Padding(
+                      SliverToBoxAdapter(
+                        child: AppContentContainer(
+                          maxWidth: AppContentWidth.narrow,
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                          child: Column(
+                            children: [
+                              for (var i = 0; i < offerings.length; i++)
+                                Padding(
                                   padding: const EdgeInsets.only(bottom: 12),
                                   child: _ServiceOfferingCard(
-                                    offering: offerings[index],
+                                    offering: offerings[i],
                                   ),
                                 ),
-                              ),
-                            );
-                          }, childCount: offerings.length),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -222,64 +199,87 @@ class _ServiceOfferingCard extends StatelessWidget {
     final theme = Theme.of(context);
     final duration = offering.estimatedDurationMinutes;
 
-    return Card(
-      // serviceCode retained on [offering.service] for later AI matching.
-      key: ValueKey(serviceCode ?? offering.id),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          context.go(AppRoutes.sitterServiceEdit(offering.id));
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(serviceName, style: theme.textTheme.titleMedium),
-                        const SizedBox(height: 2),
-                        Text(categoryName, style: theme.textTheme.bodyMedium),
-                      ],
+    return Opacity(
+      opacity: offering.isActive ? 1 : 0.72,
+      child: Card(
+        elevation: offering.isActive ? 0 : 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: offering.isActive
+                ? theme.colorScheme.outlineVariant.withValues(alpha: 0.45)
+                : theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
+          ),
+        ),
+        // serviceCode retained on [offering.service] for later AI matching.
+        key: ValueKey(serviceCode ?? offering.id),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            context.go(AppRoutes.sitterServiceEdit(offering.id));
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(serviceName, style: theme.textTheme.titleMedium),
+                          const SizedBox(height: 2),
+                          Text(
+                            categoryName,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    Chip(
+                      label: Text(offering.isActive ? 'Active' : 'Inactive'),
+                      visualDensity: VisualDensity.compact,
+                      backgroundColor: offering.isActive
+                          ? theme.colorScheme.primaryContainer
+                          : theme.colorScheme.surfaceContainerHighest,
+                      labelStyle: theme.textTheme.labelMedium?.copyWith(
+                        color: offering.isActive
+                            ? theme.colorScheme.onPrimaryContainer
+                            : theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  SitterServicesScreen.formatPrice(offering.price),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
                   ),
-                  Chip(
-                    label: Text(offering.isActive ? 'Active' : 'Inactive'),
-                    visualDensity: VisualDensity.compact,
-                    backgroundColor: offering.isActive
-                        ? theme.colorScheme.primaryContainer
-                        : theme.colorScheme.surfaceContainerHighest,
-                    labelStyle: theme.textTheme.labelMedium?.copyWith(
-                      color: offering.isActive
-                          ? theme.colorScheme.onPrimaryContainer
-                          : theme.colorScheme.onSurfaceVariant,
-                    ),
+                ),
+                if (duration != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Estimated duration: ${SitterServicesScreen.formatDuration(duration)}',
+                    style: theme.textTheme.bodyMedium,
                   ),
                 ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                SitterServicesScreen.formatPrice(offering.price),
-                style: theme.textTheme.titleSmall,
-              ),
-              if (duration != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  'Estimated duration: ${SitterServicesScreen.formatDuration(duration)}',
-                  style: theme.textTheme.bodyMedium,
-                ),
+                if (offering.serviceNotes != null &&
+                    offering.serviceNotes!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    offering.serviceNotes!,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
               ],
-              if (offering.serviceNotes != null &&
-                  offering.serviceNotes!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(offering.serviceNotes!, style: theme.textTheme.bodySmall),
-              ],
-            ],
+            ),
           ),
         ),
       ),

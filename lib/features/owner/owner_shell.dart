@@ -8,28 +8,49 @@ class OwnerShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
 
   static const _destinations = <_OwnerDestination>[
-    _OwnerDestination(label: 'Home', icon: Icons.home_outlined),
-    _OwnerDestination(label: 'Pets', icon: Icons.pets_outlined),
-    _OwnerDestination(label: 'Sitters', icon: Icons.people_outline),
-    _OwnerDestination(label: 'Map', icon: Icons.map_outlined),
-    _OwnerDestination(label: 'Bookings', icon: Icons.calendar_month_outlined),
+    _OwnerDestination(
+      label: 'Home',
+      icon: Icons.home_outlined,
+      selectedIcon: Icons.home,
+    ),
+    _OwnerDestination(
+      label: 'Pets',
+      icon: Icons.pets_outlined,
+      selectedIcon: Icons.pets,
+    ),
+    _OwnerDestination(
+      label: 'Sitters',
+      icon: Icons.people_outline,
+      selectedIcon: Icons.people,
+    ),
+    _OwnerDestination(
+      label: 'Map',
+      icon: Icons.map_outlined,
+      selectedIcon: Icons.map,
+    ),
+    _OwnerDestination(
+      label: 'Bookings',
+      icon: Icons.calendar_month_outlined,
+      selectedIcon: Icons.calendar_month,
+    ),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final destination = _destinations[navigationShell.currentIndex];
+
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_destinations[navigationShell.currentIndex].label),
-      ),
+      appBar: AppBar(title: Text(destination.label)),
       body: navigationShell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: navigationShell.goBranch,
         destinations: [
-          for (final destination in _destinations)
+          for (final item in _destinations)
             NavigationDestination(
-              icon: Icon(destination.icon),
-              label: destination.label,
+              icon: Icon(item.icon),
+              selectedIcon: Icon(item.selectedIcon),
+              label: item.label,
             ),
         ],
       ),
@@ -38,8 +59,13 @@ class OwnerShell extends StatelessWidget {
 }
 
 class _OwnerDestination {
-  const _OwnerDestination({required this.label, required this.icon});
+  const _OwnerDestination({
+    required this.label,
+    required this.icon,
+    required this.selectedIcon,
+  });
 
   final String label;
   final IconData icon;
+  final IconData selectedIcon;
 }

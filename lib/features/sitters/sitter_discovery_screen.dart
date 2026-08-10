@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
+import '../../core/widgets/app_content_container.dart';
+import '../../core/widgets/app_empty_state.dart';
 import '../../core/widgets/error_message.dart';
 import '../../core/widgets/loading_indicator.dart';
 import '../services/service_model.dart';
@@ -77,90 +79,90 @@ class _SitterDiscoveryScreenState extends ConsumerState<SitterDiscoveryScreen> {
 
           return LayoutBuilder(
             builder: (context, constraints) {
-              final horizontalPadding = constraints.maxWidth > 600
-                  ? 48.0
-                  : 16.0;
+              final useGrid = constraints.maxWidth >= 800;
 
               return RefreshIndicator(
                 onRefresh: _refresh,
                 child: CustomScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
-                    SliverPadding(
-                      padding: EdgeInsets.fromLTRB(
-                        horizontalPadding,
-                        16,
-                        horizontalPadding,
-                        24,
-                      ),
-                      sliver: SliverToBoxAdapter(
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 720),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                    SliverToBoxAdapter(
+                      child: AppContentContainer(
+                        maxWidth: AppContentWidth.page,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
                               children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        'Find Pet Care',
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.titleLarge,
-                                      ),
-                                    ),
-                                    if (kIsWeb)
-                                      IconButton(
-                                        tooltip: 'Refresh',
-                                        onPressed: _refresh,
-                                        icon: const Icon(Icons.refresh),
-                                      ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Browse PawPal providers and the services '
-                                  'they currently offer.',
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                                const SizedBox(height: 16),
-                                TextField(
-                                  controller: _searchController,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Search by provider or suburb',
-                                    prefixIcon: Icon(Icons.search),
-                                    border: OutlineInputBorder(),
+                                Expanded(
+                                  child: Text(
+                                    'Find Pet Care',
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.titleLarge,
                                   ),
-                                  textInputAction: TextInputAction.search,
-                                  onChanged: (value) {
-                                    setState(() => _searchQuery = value);
-                                  },
                                 ),
-                                const SizedBox(height: 12),
-                                _ServiceFilterChips(
-                                  services: catalogue,
-                                  selectedServiceId: _selectedServiceId,
-                                  onSelected: (serviceId) {
-                                    setState(
-                                      () => _selectedServiceId = serviceId,
-                                    );
-                                  },
-                                ),
-                                const SizedBox(height: 16),
-                                if (sitters.isEmpty)
-                                  const _EmptyProvidersState()
-                                else if (filtered.isEmpty)
-                                  _FilteredEmptyState(onClear: _clearFilters)
-                                else ...[
-                                  for (final sitter in filtered) ...[
-                                    _SitterDiscoveryCard(sitter: sitter),
-                                    const SizedBox(height: 12),
-                                  ],
-                                ],
+                                if (kIsWeb)
+                                  IconButton(
+                                    tooltip: 'Refresh',
+                                    onPressed: _refresh,
+                                    icon: const Icon(Icons.refresh),
+                                  ),
                               ],
                             ),
-                          ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Browse PawPal providers and the services '
+                              'they currently offer.',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                            const SizedBox(height: 16),
+                            _FilterPanel(
+                              searchController: _searchController,
+                              onSearchChanged: (value) {
+                                setState(() => _searchQuery = value);
+                              },
+                              services: catalogue,
+                              selectedServiceId: _selectedServiceId,
+                              onServiceSelected: (serviceId) {
+                                setState(() => _selectedServiceId = serviceId);
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            if (sitters.isEmpty)
+                              const _EmptyProvidersState()
+                            else if (filtered.isEmpty)
+                              _FilteredEmptyState(onClear: _clearFilters)
+                            else if (useGrid)
+                              LayoutBuilder(
+                                builder: (context, inner) {
+                                  final gap = 12.0;
+                                  final itemWidth = (inner.maxWidth - gap) / 2;
+                                  return Wrap(
+                                    spacing: gap,
+                                    runSpacing: gap,
+                                    children: [
+                                      for (final sitter in filtered)
+                                        SizedBox(
+                                          width: itemWidth,
+                                          child: _SitterDiscoveryCard(
+                                            sitter: sitter,
+                                          ),
+                                        ),
+                                    ],
+                                  );
+                                },
+                              )
+                            else
+                              Column(
+                                children: [
+                                  for (var i = 0; i < filtered.length; i++) ...[
+                                    if (i > 0) const SizedBox(height: 12),
+                                    _SitterDiscoveryCard(sitter: filtered[i]),
+                                  ],
+                                ],
+                              ),
+                          ],
                         ),
                       ),
                     ),
@@ -170,6 +172,64 @@ class _SitterDiscoveryScreenState extends ConsumerState<SitterDiscoveryScreen> {
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class _FilterPanel extends StatelessWidget {
+  const _FilterPanel({
+    required this.searchController,
+    required this.onSearchChanged,
+    required this.services,
+    required this.selectedServiceId,
+    required this.onServiceSelected,
+  });
+
+  final TextEditingController searchController;
+  final ValueChanged<String> onSearchChanged;
+  final List<ServiceModel> services;
+  final String? selectedServiceId;
+  final ValueChanged<String?> onServiceSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      color: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.45)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                labelText: 'Search by provider or suburb',
+                prefixIcon: const Icon(Icons.search),
+                isDense: true,
+                filled: true,
+                fillColor: scheme.surface,
+                border: const OutlineInputBorder(),
+              ),
+              textInputAction: TextInputAction.search,
+              onChanged: onSearchChanged,
+            ),
+            const SizedBox(height: 10),
+            _ServiceFilterChips(
+              services: services,
+              selectedServiceId: selectedServiceId,
+              onSelected: onServiceSelected,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -223,33 +283,102 @@ class _SitterDiscoveryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final location = _locationLabel(sitter.suburb, sitter.postcode);
     final description = sitter.serviceDescription;
 
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(sitter.fullName, style: theme.textTheme.titleMedium),
-            if (location != null) ...[
-              const SizedBox(height: 4),
-              Text(location, style: theme.textTheme.bodySmall),
-            ],
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 26,
+                  backgroundColor: scheme.primaryContainer,
+                  foregroundColor: scheme.onPrimaryContainer,
+                  child: Text(
+                    _initials(sitter.fullName),
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: scheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(sitter.fullName, style: theme.textTheme.titleMedium),
+                      if (location != null) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.place_outlined,
+                              size: 16,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                location,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
             if (description != null) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(description, style: theme.textTheme.bodyMedium),
             ],
-            const SizedBox(height: 12),
-            for (var i = 0; i < sitter.offerings.length; i++) ...[
-              if (i > 0) const SizedBox(height: 12),
-              _OfferingRow(offering: sitter.offerings[i]),
+            if (sitter.offerings.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Divider(
+                height: 1,
+                color: scheme.outlineVariant.withValues(alpha: 0.6),
+              ),
+              const SizedBox(height: 4),
+              for (var i = 0; i < sitter.offerings.length; i++) ...[
+                if (i > 0)
+                  Divider(
+                    height: 1,
+                    color: scheme.outlineVariant.withValues(alpha: 0.4),
+                  ),
+                _OfferingRow(offering: sitter.offerings[i]),
+              ],
             ],
           ],
         ),
       ),
     );
+  }
+
+  static String _initials(String fullName) {
+    final parts = fullName.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty || parts.first.isEmpty) return '?';
+    if (parts.length == 1) {
+      return parts.first.substring(0, 1).toUpperCase();
+    }
+    return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
+        .toUpperCase();
   }
 
   static String? _locationLabel(String? suburb, String? postcode) {
@@ -286,25 +415,28 @@ class _OfferingRow extends StatelessWidget {
         ? priceLabel
         : '$priceLabel • ${SitterServicesScreen.formatDuration(duration)}';
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(serviceName, style: theme.textTheme.titleSmall),
-              const SizedBox(height: 4),
-              Text(details, style: theme.textTheme.bodyMedium),
-            ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(serviceName, style: theme.textTheme.titleSmall),
+                const SizedBox(height: 4),
+                Text(details, style: theme.textTheme.bodyMedium),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(width: 8),
-        FilledButton(
-          onPressed: () => context.push(AppRoutes.bookingNew(offering.id)),
-          child: const Text('Book'),
-        ),
-      ],
+          const SizedBox(width: 8),
+          FilledButton(
+            onPressed: () => context.push(AppRoutes.bookingNew(offering.id)),
+            child: const Text('Book'),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -314,13 +446,10 @@ class _EmptyProvidersState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 32),
-      child: Text(
-        'No active PawPal providers are available yet.',
-        style: Theme.of(context).textTheme.bodyLarge,
-        textAlign: TextAlign.center,
-      ),
+    return AppEmptyState(
+      icon: Icons.pets_outlined,
+      title: 'No providers yet',
+      message: 'No active PawPal providers are available yet.',
     );
   }
 }
@@ -332,22 +461,12 @@ class _FilteredEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 32),
-      child: Column(
-        children: [
-          Text(
-            'No providers match your current search or service filter.',
-            style: Theme.of(context).textTheme.bodyLarge,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          OutlinedButton(
-            onPressed: onClear,
-            child: const Text('Clear Filters'),
-          ),
-        ],
-      ),
+    return AppEmptyState(
+      icon: Icons.search_off_outlined,
+      title: 'No matches',
+      message: 'No providers match your current search or service filter.',
+      actionLabel: 'Clear Filters',
+      onAction: onClear,
     );
   }
 }

@@ -8,6 +8,7 @@ import '../../features/auth/auth_providers.dart';
 import '../../features/auth/auth_role.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/auth/register_screen.dart';
+import '../../features/bookings/card_payment_screen.dart';
 import '../../features/bookings/create_booking_screen.dart';
 import '../../features/bookings/owner_bookings_screen.dart';
 import '../../features/bookings/sitter_bookings_screen.dart';
@@ -51,6 +52,9 @@ abstract final class AppRoutes {
       '/sitter-services/$offeringId/edit';
 
   static String bookingNew(String offeringId) => '/bookings/new/$offeringId';
+
+  static String bookingPayment(String bookingId) =>
+      '/bookings/$bookingId/payment';
 }
 
 const _publicRoutes = <String>{
@@ -168,6 +172,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final offeringId = state.pathParameters['offeringId']!;
           return CreateBookingScreen(offeringId: offeringId);
+        },
+      ),
+      GoRoute(
+        path: '/bookings/:bookingId/payment',
+        builder: (context, state) {
+          final bookingId = state.pathParameters['bookingId']!;
+          return CardPaymentScreen(bookingId: bookingId);
         },
       ),
       GoRoute(

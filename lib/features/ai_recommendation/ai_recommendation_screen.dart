@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_content_container.dart';
+import '../../core/widgets/app_section.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/error_message.dart';
 import '../../core/widgets/loading_indicator.dart';
@@ -176,139 +179,162 @@ class _AiRecommendationScreenState
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final horizontalPadding = constraints.maxWidth > 600 ? 48.0 : 24.0;
         final theme = Theme.of(context);
+        final scheme = theme.colorScheme;
+        final wideProviders = constraints.maxWidth >= 800;
 
         return SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: 24,
-          ),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Icon(
-                      Icons.auto_awesome,
-                      size: 40,
-                      color: theme.colorScheme.primary,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Find the exact PawPal service your pet needs',
-                      style: theme.textTheme.titleLarge,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Tell us about your pet’s current needs and we will '
-                      'prepare a personalised service recommendation.',
-                      style: theme.textTheme.bodyMedium,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-                    DropdownButtonFormField<String>(
-                      // ignore: deprecated_member_use
-                      value: selectedId,
-                      isExpanded: true,
-                      decoration: const InputDecoration(labelText: 'Pet'),
-                      items: [
-                        for (final pet in pets)
-                          DropdownMenuItem(
-                            value: pet.id,
-                            child: Text(
-                              _petOptionLabel(pet),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                      ],
-                      onChanged: _isSubmitting
-                          ? null
-                          : (value) => setState(() => _selectedPetId = value),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Select a pet';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: _descriptionController,
-                      labelText: 'Describe what your pet needs today',
-                      hintText:
-                          'My Golden Retriever has a muddy coat, is shedding '
-                          'heavily, has overgrown nails and becomes nervous '
-                          'around loud dryers.',
-                      maxLines: 6,
-                      enabled: !_isSubmitting,
-                      validator: validateAiRecommendationDescription,
-                    ),
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: Text(
-                        '$_descriptionLength / 1000',
-                        style: theme.textTheme.bodySmall,
+          child: AppContentContainer(
+            maxWidth: AppContentWidth.narrow,
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          scheme.primaryContainer.withValues(alpha: 0.7),
+                          AppColors.surfaceTint,
+                        ],
                       ),
+                      borderRadius: BorderRadius.circular(18),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Mention details such as coat condition, shedding, nail '
-                      'condition, age, mobility needs, behaviour around other '
-                      'pets, grooming anxiety, medication schedule, or whether '
-                      'you need walking, home care or overnight supervision.',
-                      style: theme.textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 24),
-                    _SafetyNotice(
-                      icon: Icons.info_outline,
-                      message:
-                          'PawPal recommends pet-care services only. It does '
-                          'not diagnose medical conditions or replace '
-                          'professional veterinary advice.',
-                    ),
-                    const SizedBox(height: 12),
-                    _SafetyNotice(
-                      icon: Icons.emergency_outlined,
-                      message:
-                          'If your pet is seriously injured, struggling to '
-                          'breathe, having a seizure or showing another urgent '
-                          'symptom, contact a veterinarian immediately.',
-                    ),
-                    if (_submitError != null) ...[
-                      const SizedBox(height: 16),
-                      ErrorMessage(message: _submitError!),
-                    ],
-                    if (_result != null) ...[
-                      const SizedBox(height: 24),
-                      _RecommendationResultCard(result: _result!),
-                      if (matchCode != null &&
-                          recommendedServiceName != null) ...[
-                        const SizedBox(height: 24),
-                        _MatchingProvidersSection(
-                          serviceCode: matchCode,
-                          recommendedServiceName: recommendedServiceName,
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.auto_awesome,
+                          size: 36,
+                          color: scheme.primary,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'AI Service Finder',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Tell PawPal what your pet needs and get a '
+                          'personalised service recommendation.',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ],
-                      const SizedBox(height: 16),
-                      OutlinedButton(
-                        onPressed: _isSubmitting ? null : () => _tryAgain(pets),
-                        child: const Text('Try Again'),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    // ignore: deprecated_member_use
+                    value: selectedId,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Pet',
+                      prefixIcon: Icon(Icons.pets_outlined),
+                    ),
+                    items: [
+                      for (final pet in pets)
+                        DropdownMenuItem(
+                          value: pet.id,
+                          child: Text(
+                            _petOptionLabel(pet),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                    onChanged: _isSubmitting
+                        ? null
+                        : (value) => setState(() => _selectedPetId = value),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Select a pet';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  AppTextField(
+                    controller: _descriptionController,
+                    labelText: 'Describe what your pet needs today',
+                    hintText:
+                        'My Golden Retriever has a muddy coat, is shedding '
+                        'heavily, has overgrown nails and becomes nervous '
+                        'around loud dryers.',
+                    maxLines: 6,
+                    enabled: !_isSubmitting,
+                    validator: validateAiRecommendationDescription,
+                  ),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      '$_descriptionLength / 1000',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Mention details such as coat condition, shedding, nail '
+                    'condition, age, mobility needs, behaviour around other '
+                    'pets, grooming anxiety, medication schedule, or whether '
+                    'you need walking, home care or overnight supervision.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const AppInfoBanner(
+                    icon: Icons.info_outline,
+                    message:
+                        'PawPal recommends pet-care services only. It does '
+                        'not diagnose medical conditions or replace '
+                        'professional veterinary advice.',
+                  ),
+                  const SizedBox(height: 8),
+                  const AppInfoBanner(
+                    icon: Icons.emergency_outlined,
+                    message:
+                        'If your pet is seriously injured, struggling to '
+                        'breathe, having a seizure or showing another urgent '
+                        'symptom, contact a veterinarian immediately.',
+                  ),
+                  if (_submitError != null) ...[
+                    const SizedBox(height: 12),
+                    ErrorMessage(message: _submitError!),
+                  ],
+                  if (_result != null) ...[
+                    const SizedBox(height: 20),
+                    _RecommendationResultCard(result: _result!),
+                    if (matchCode != null &&
+                        recommendedServiceName != null) ...[
+                      const SizedBox(height: 20),
+                      _MatchingProvidersSection(
+                        serviceCode: matchCode,
+                        recommendedServiceName: recommendedServiceName,
+                        wideLayout: wideProviders,
                       ),
                     ],
-                    const SizedBox(height: 24),
-                    PrimaryButton(
-                      label: 'Find the Best Service',
-                      isLoading: _isSubmitting,
-                      onPressed: _canSubmit(pets) ? () => _submit(pets) : null,
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: _isSubmitting ? null : () => _tryAgain(pets),
+                      child: const Text('Try Again'),
                     ),
                   ],
-                ),
+                  const SizedBox(height: 16),
+                  PrimaryButton(
+                    label: 'Find the Best Service',
+                    isLoading: _isSubmitting,
+                    onPressed: _canSubmit(pets) ? () => _submit(pets) : null,
+                  ),
+                ],
               ),
             ),
           ),
@@ -322,10 +348,12 @@ class _MatchingProvidersSection extends ConsumerWidget {
   const _MatchingProvidersSection({
     required this.serviceCode,
     required this.recommendedServiceName,
+    this.wideLayout = false,
   });
 
   final String serviceCode;
   final String recommendedServiceName;
+  final bool wideLayout;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -378,6 +406,22 @@ class _MatchingProvidersSection extends ConsumerWidget {
           data: (offerings) {
             if (offerings.isEmpty) {
               return const _ProvidersEmptyState();
+            }
+            if (wideLayout) {
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (final offering in offerings)
+                    SizedBox(
+                      width: 340,
+                      child: _ProviderMatchCard(
+                        offering: offering,
+                        fallbackServiceName: recommendedServiceName,
+                      ),
+                    ),
+                ],
+              );
             }
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -440,16 +484,16 @@ class _ProviderMatchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final sitter = offering.sitter;
     if (sitter == null) {
       return const SizedBox.shrink();
     }
 
     final location = _locationLabel(sitter.suburb, sitter.postcode);
-    final serviceName = offering.service?.name ?? fallbackServiceName;
     final duration = offering.estimatedDurationMinutes;
     final notes = offering.serviceNotes?.trim();
-    final description = sitter.serviceDescription?.trim();
+    final serviceName = offering.service?.name ?? fallbackServiceName;
 
     return Card(
       child: Padding(
@@ -457,17 +501,44 @@ class _ProviderMatchCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(sitter.fullName, style: theme.textTheme.titleMedium),
-            if (location != null) ...[
-              const SizedBox(height: 4),
-              Text(location, style: theme.textTheme.bodySmall),
-            ],
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: scheme.primaryContainer,
+                  child: Icon(Icons.person, color: scheme.onPrimaryContainer),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(sitter.fullName, style: theme.textTheme.titleMedium),
+                      if (location != null)
+                        Text(
+                          location,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
-            Text(serviceName, style: theme.textTheme.titleSmall),
+            Text(
+              serviceName,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 4),
             Text(
               SitterServicesScreen.formatPrice(offering.price),
-              style: theme.textTheme.titleMedium,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: scheme.primary,
+                fontWeight: FontWeight.w700,
+              ),
             ),
             if (duration != null) ...[
               const SizedBox(height: 4),
@@ -480,10 +551,6 @@ class _ProviderMatchCard extends StatelessWidget {
             if (notes != null && notes.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(notes, style: theme.textTheme.bodyMedium),
-            ],
-            if (description != null && description.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(description, style: theme.textTheme.bodyMedium),
             ],
             const SizedBox(height: 12),
             FilledButton(
@@ -533,53 +600,112 @@ class _ServiceRecommendationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final primary = result.primaryService!;
 
     return Card(
+      color: scheme.primaryContainer.withValues(alpha: 0.35),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Recommended Service', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text(primary.name, style: theme.textTheme.headlineSmall),
-            if (result.additionalServices.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Text('Additional Services', style: theme.textTheme.titleSmall),
-              const SizedBox(height: 8),
-              for (final service in result.additionalServices)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text('• ${service.name}'),
-                ),
-            ],
-            const SizedBox(height: 16),
-            Text('Why this recommendation', style: theme.textTheme.titleSmall),
-            const SizedBox(height: 8),
-            Text(result.reasoning),
-            if (result.sitterRequirements.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Text(
-                'Look for a provider who can:',
-                style: theme.textTheme.titleSmall,
+            Row(
+              children: [
+                Icon(Icons.auto_awesome, color: scheme.primary),
+                const SizedBox(width: 8),
+                Text('Recommended Service', style: theme.textTheme.titleMedium),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              primary.name,
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(height: 8),
-              for (final item in result.sitterRequirements)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Text('• $item'),
+            ),
+            const SizedBox(height: 16),
+            _ResultSection(
+              icon: Icons.lightbulb_outline,
+              title: 'Why this service',
+              child: Text(result.reasoning),
+            ),
+            if (result.additionalServices.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              _ResultSection(
+                icon: Icons.add_circle_outline,
+                title: 'Additional services',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final service in result.additionalServices)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text('• ${service.name}'),
+                      ),
+                  ],
                 ),
+              ),
             ],
-            const SizedBox(height: 16),
-            Text('Next step', style: theme.textTheme.titleSmall),
-            const SizedBox(height: 8),
-            Text(result.ownerAdvice),
-            const SizedBox(height: 16),
+            if (result.sitterRequirements.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              _ResultSection(
+                icon: Icons.checklist_outlined,
+                title: 'Provider requirements',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (final item in result.sitterRequirements)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Text('• $item'),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 14),
+            _ResultSection(
+              icon: Icons.tips_and_updates_outlined,
+              title: 'Advice',
+              child: Text(result.ownerAdvice),
+            ),
+            const SizedBox(height: 12),
             Text(result.safetyNotice, style: theme.textTheme.bodySmall),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ResultSection extends StatelessWidget {
+  const _ResultSection({
+    required this.icon,
+    required this.title,
+    required this.child,
+  });
+
+  final IconData icon;
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 18, color: theme.colorScheme.primary),
+            const SizedBox(width: 8),
+            Text(title, style: theme.textTheme.titleSmall),
+          ],
+        ),
+        const SizedBox(height: 6),
+        child,
+      ],
     );
   }
 }
@@ -643,33 +769,6 @@ class _UrgentVetCard extends StatelessWidget {
                 color: scheme.onErrorContainer,
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SafetyNotice extends StatelessWidget {
-  const _SafetyNotice({required this.icon, required this.message});
-
-  final IconData icon;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      color: theme.colorScheme.surfaceContainerHighest,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: theme.colorScheme.primary),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message, style: theme.textTheme.bodySmall)),
           ],
         ),
       ),

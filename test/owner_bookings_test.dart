@@ -313,6 +313,11 @@ void main() {
             builder: (context, state) =>
                 const Scaffold(body: Text('AI recommendation screen')),
           ),
+          GoRoute(
+            path: '/bookings/:bookingId/payment',
+            builder: (context, state) =>
+                const Scaffold(body: Text('Payment screen')),
+          ),
         ],
       );
 
@@ -388,14 +393,19 @@ void main() {
         find.byKey(const Key('cancel_booking_accepted-1')),
         findsOneWidget,
       );
-      expect(find.byKey(const Key('demo_pay_booking_pending-1')), findsNothing);
       expect(
-        find.byKey(const Key('demo_pay_booking_accepted-1')),
+        find.byKey(const Key('pay_by_card_booking_pending-1')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('pay_by_card_booking_accepted-1')),
         findsOneWidget,
       );
+      expect(find.text('Pay by Card'), findsOneWidget);
+      expect(find.text('Demo Pay'), findsNothing);
     });
 
-    testWidgets('Demo Pay hidden for demo paid and refunded bookings', (
+    testWidgets('Pay by Card hidden for demo paid and refunded bookings', (
       tester,
     ) async {
       bookings = [
@@ -413,9 +423,9 @@ void main() {
       ];
       await pumpScreen(tester);
 
-      expect(find.byKey(const Key('demo_pay_booking_paid-1')), findsNothing);
+      expect(find.byKey(const Key('pay_by_card_booking_paid-1')), findsNothing);
       expect(
-        find.byKey(const Key('demo_pay_booking_refunded-1')),
+        find.byKey(const Key('pay_by_card_booking_refunded-1')),
         findsNothing,
       );
       expect(find.text('Demo Paid'), findsOneWidget);
@@ -424,7 +434,6 @@ void main() {
       expect(find.byKey(const Key('cancel_booking_refunded-1')), findsNothing);
       expect(find.text('Paid'), findsNothing);
       expect(find.byType(TextField), findsNothing);
-      expect(find.textContaining('card'), findsNothing);
       expect(find.textContaining('CVV'), findsNothing);
     });
 
@@ -442,7 +451,7 @@ void main() {
 
         expect(find.text('Demo Paid'), findsOneWidget);
         expect(
-          find.byKey(const Key('demo_pay_booking_paid-accepted')),
+          find.byKey(const Key('pay_by_card_booking_paid-accepted')),
           findsNothing,
         );
         expect(
@@ -549,78 +558,15 @@ void main() {
       expect(repository.cancelCalls, 1);
     });
 
-    testWidgets('dismissing demo pay dialog does not call repository', (
-      tester,
-    ) async {
+    testWidgets('Pay by Card opens the payment route', (tester) async {
       bookings = [_booking(id: 'accepted-1', status: BookingStatus.accepted)];
       await pumpScreen(tester);
 
-      await tester.tap(find.byKey(const Key('demo_pay_booking_accepted-1')));
-      await tester.pumpAndSettle();
-      expect(find.text('Demo payment'), findsOneWidget);
-      expect(
-        find.textContaining('No real money will be charged'),
-        findsOneWidget,
-      );
-      expect(find.text('Service: Dog Walking'), findsOneWidget);
-      expect(find.text(r'Amount: $30.00'), findsOneWidget);
-      expect(find.byType(TextField), findsNothing);
-
-      await tester.tap(find.text('Cancel'));
+      await tester.tap(find.byKey(const Key('pay_by_card_booking_accepted-1')));
       await tester.pumpAndSettle();
 
+      expect(find.text('Payment screen'), findsOneWidget);
       expect(repository.demoPayCalls, 0);
-      expect(find.text('Demo payment'), findsNothing);
-    });
-
-    testWidgets('confirm demo pay calls repository once and refreshes', (
-      tester,
-    ) async {
-      bookings = [_booking(id: 'accepted-1', status: BookingStatus.accepted)];
-      await pumpScreen(tester);
-      repository.delay = const Duration(milliseconds: 250);
-      final loadsBefore = bookingsLoads;
-
-      await tester.tap(find.byKey(const Key('demo_pay_booking_accepted-1')));
-      await tester.pumpAndSettle();
-
-      final confirm = find.byKey(const Key('confirm_demo_pay_booking'));
-      await tester.tap(confirm);
-      await tester.pump();
-      await tester.tap(confirm);
-      await tester.pump();
-
-      expect(repository.demoPayCalls, 1);
-      await tester.pumpAndSettle();
-
-      expect(repository.demoPayCalls, 1);
-      expect(repository.demoPayIds, ['accepted-1']);
-      expect(bookingsLoads, greaterThan(loadsBefore));
-      expect(
-        find.text('Demo payment completed for Dog Walking.'),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('demo pay failure shows error and keeps list', (tester) async {
-      bookings = [_booking(id: 'accepted-1', status: BookingStatus.accepted)];
-      await pumpScreen(tester);
-      repository.throwOnDemoPay = const BookingException(
-        'This booking has already been demo paid.',
-      );
-
-      await tester.tap(find.byKey(const Key('demo_pay_booking_accepted-1')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('confirm_demo_pay_booking')));
-      await tester.pumpAndSettle();
-
-      expect(
-        find.text('This booking has already been demo paid.'),
-        findsOneWidget,
-      );
-      expect(find.text('Demo payment'), findsOneWidget);
-      expect(find.text('Dog Walking'), findsOneWidget);
-      expect(repository.demoPayCalls, 1);
     });
   });
 }

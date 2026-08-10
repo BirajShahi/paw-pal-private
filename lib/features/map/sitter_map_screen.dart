@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../core/router/app_router.dart';
+import '../../core/widgets/app_empty_state.dart';
 import '../../core/widgets/error_message.dart';
 import '../../core/widgets/loading_indicator.dart';
 import '../services/service_model.dart';
@@ -96,7 +97,7 @@ class _SitterMapScreenState extends ConsumerState<SitterMapScreen> {
               return LayoutBuilder(
                 builder: (context, constraints) {
                   final horizontalPadding = constraints.maxWidth > 600
-                      ? 48.0
+                      ? 32.0
                       : 12.0;
                   final mapHeight = constraints.maxHeight < 420
                       ? constraints.maxHeight * 0.7
@@ -108,32 +109,40 @@ class _SitterMapScreenState extends ConsumerState<SitterMapScreen> {
                       Padding(
                         padding: EdgeInsets.fromLTRB(
                           horizontalPadding,
-                          12,
-                          horizontalPadding,
                           8,
+                          horizontalPadding,
+                          6,
                         ),
                         child: Center(
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 960),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: _ServiceFilterChips(
-                                    services: catalogue,
-                                    selectedServiceId: _selectedServiceId,
-                                    onSelected: (serviceId) {
-                                      setState(
-                                        () => _selectedServiceId = serviceId,
-                                      );
-                                    },
-                                  ),
+                            child: Card(
+                              elevation: 0,
+                              margin: EdgeInsets.zero,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(8, 4, 4, 8),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: _ServiceFilterChips(
+                                        services: catalogue,
+                                        selectedServiceId: _selectedServiceId,
+                                        onSelected: (serviceId) {
+                                          setState(
+                                            () =>
+                                                _selectedServiceId = serviceId,
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    IconButton(
+                                      tooltip: 'Refresh',
+                                      onPressed: _refresh,
+                                      icon: const Icon(Icons.refresh),
+                                    ),
+                                  ],
                                 ),
-                                IconButton(
-                                  tooltip: 'Refresh',
-                                  onPressed: _refresh,
-                                  icon: const Icon(Icons.refresh),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
@@ -171,7 +180,7 @@ class _SitterMapScreenState extends ConsumerState<SitterMapScreen> {
                               child: visible.isEmpty
                                   ? const SizedBox.expand()
                                   : ClipRRect(
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: BorderRadius.circular(16),
                                       child: _ProvidersMap(
                                         sitters: visible,
                                         onMarkerTap: _showSitterDetails,
@@ -317,18 +326,66 @@ class _SitterMapDetailsSheet extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(sitter.fullName, style: theme.textTheme.titleLarge),
-                  if (location != null) ...[
-                    const SizedBox(height: 4),
-                    Text(location, style: theme.textTheme.bodySmall),
-                  ],
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: theme.colorScheme.primaryContainer,
+                        foregroundColor: theme.colorScheme.onPrimaryContainer,
+                        child: Text(
+                          _initials(sitter.fullName),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              sitter.fullName,
+                              style: theme.textTheme.titleLarge,
+                            ),
+                            if (location != null) ...[
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.place_outlined,
+                                    size: 16,
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      location,
+                                      style: theme.textTheme.bodySmall,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                   if (description != null) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Text(description, style: theme.textTheme.bodyMedium),
                   ],
                   const SizedBox(height: 16),
                   for (var i = 0; i < sitter.offerings.length; i++) ...[
-                    if (i > 0) const SizedBox(height: 12),
+                    if (i > 0)
+                      Divider(
+                        height: 1,
+                        color: theme.colorScheme.outlineVariant.withValues(
+                          alpha: 0.4,
+                        ),
+                      ),
                     _OfferingRow(offering: sitter.offerings[i]),
                   ],
                 ],
@@ -338,6 +395,16 @@ class _SitterMapDetailsSheet extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  static String _initials(String fullName) {
+    final parts = fullName.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty || parts.first.isEmpty) return '?';
+    if (parts.length == 1) {
+      return parts.first.substring(0, 1).toUpperCase();
+    }
+    return '${parts.first.substring(0, 1)}${parts.last.substring(0, 1)}'
+        .toUpperCase();
   }
 
   static String? _locationLabel(String? suburb, String? postcode) {
@@ -405,15 +472,10 @@ class _NoProvidersState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          'No active PawPal providers are available yet.',
-          style: Theme.of(context).textTheme.bodyLarge,
-          textAlign: TextAlign.center,
-        ),
-      ),
+    return AppEmptyState(
+      icon: Icons.pets_outlined,
+      title: 'No providers yet',
+      message: 'No active PawPal providers are available yet.',
     );
   }
 }
@@ -423,26 +485,43 @@ class _NoLocationState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer.withValues(alpha: 0.55),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.map_outlined,
+                  size: 36,
+                  color: scheme.primary,
+                ),
+              ),
+              const SizedBox(height: 16),
               Text(
                 'No provider map locations are available yet.',
-                style: Theme.of(context).textTheme.titleMedium,
+                style: theme.textTheme.titleMedium,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
                 'You can still browse available providers from Find Pet Care.',
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: theme.textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               FilledButton(
                 onPressed: () => context.go(AppRoutes.sitters),
                 child: const Text('Browse Providers'),

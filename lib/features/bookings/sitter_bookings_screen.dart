@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/widgets/app_content_container.dart';
 import '../../core/widgets/error_message.dart';
 import '../../core/widgets/loading_indicator.dart';
 import '../services/sitter_services_screen.dart';
@@ -62,10 +63,6 @@ class SitterBookingsScreen extends ConsumerWidget {
 
             return LayoutBuilder(
               builder: (context, constraints) {
-                final horizontalPadding = constraints.maxWidth > 600
-                    ? 48.0
-                    : 16.0;
-
                 return RefreshIndicator(
                   onRefresh: () => _refresh(ref),
                   child: CustomScrollView(
@@ -76,15 +73,14 @@ class SitterBookingsScreen extends ConsumerWidget {
                           context,
                           title: 'Requests',
                           bookings: sections.requests,
-                          horizontalPadding: horizontalPadding,
                           ref: ref,
+                          highlightSection: true,
                         ),
                       if (sections.upcoming.isNotEmpty)
                         ..._sectionSlivers(
                           context,
                           title: 'Upcoming',
                           bookings: sections.upcoming,
-                          horizontalPadding: horizontalPadding,
                           ref: ref,
                         ),
                       if (sections.history.isNotEmpty)
@@ -92,8 +88,8 @@ class SitterBookingsScreen extends ConsumerWidget {
                           context,
                           title: 'History',
                           bookings: sections.history,
-                          horizontalPadding: horizontalPadding,
                           ref: ref,
+                          muted: true,
                         ),
                       const SliverToBoxAdapter(child: SizedBox(height: 24)),
                     ],
@@ -111,57 +107,60 @@ class SitterBookingsScreen extends ConsumerWidget {
     BuildContext context, {
     required String title,
     required List<BookingModel> bookings,
-    required double horizontalPadding,
     required WidgetRef ref,
+    bool highlightSection = false,
+    bool muted = false,
   }) {
-    return [
-      SliverPadding(
-        padding: EdgeInsets.fromLTRB(
-          horizontalPadding,
-          16,
-          horizontalPadding,
-          8,
-        ),
-        sliver: SliverToBoxAdapter(
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+    final scheme = Theme.of(context).colorScheme;
+
+    final cards = Column(
+      children: [
+        for (var i = 0; i < bookings.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _SitterBookingCard(
+              booking: bookings[i],
+              muted: muted,
+              onStatusChanged: () async {
+                ref.invalidate(currentSitterBookingsProvider);
+                ref.invalidate(bookingByIdProvider(bookings[i].id));
+                await ref.read(currentSitterBookingsProvider.future);
+              },
+              onStaleFailure: () async {
+                ref.invalidate(currentSitterBookingsProvider);
+                await ref.read(currentSitterBookingsProvider.future);
+              },
             ),
           ),
+      ],
+    );
+
+    return [
+      SliverToBoxAdapter(
+        child: AppContentContainer(
+          maxWidth: AppContentWidth.narrow,
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Text(title, style: Theme.of(context).textTheme.titleMedium),
         ),
       ),
-      SliverPadding(
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate((context, index) {
-            final booking = bookings[index];
-            return Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 560),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _SitterBookingCard(
-                    booking: booking,
-                    onStatusChanged: () async {
-                      ref.invalidate(currentSitterBookingsProvider);
-                      ref.invalidate(bookingByIdProvider(booking.id));
-                      await ref.read(currentSitterBookingsProvider.future);
-                    },
-                    onStaleFailure: () async {
-                      ref.invalidate(currentSitterBookingsProvider);
-                      await ref.read(currentSitterBookingsProvider.future);
-                    },
+      SliverToBoxAdapter(
+        child: AppContentContainer(
+          maxWidth: AppContentWidth.narrow,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+          child: highlightSection
+              ? Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer.withValues(alpha: 0.22),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: scheme.primary.withValues(alpha: 0.12),
+                    ),
                   ),
-                ),
-              ),
-            );
-          }, childCount: bookings.length),
+                  child: cards,
+                )
+              : cards,
         ),
       ),
     ];
@@ -193,6 +192,22 @@ class _EmptySitterBookingsState extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer.withValues(
+                          alpha: 0.55,
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.inbox_outlined,
+                        size: 36,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     Text(
                       'No booking requests yet.',
                       style: theme.textTheme.titleMedium,
@@ -221,11 +236,13 @@ class _SitterBookingCard extends ConsumerStatefulWidget {
     required this.booking,
     required this.onStatusChanged,
     required this.onStaleFailure,
+    this.muted = false,
   });
 
   final BookingModel booking;
   final Future<void> Function() onStatusChanged;
   final Future<void> Function() onStaleFailure;
+  final bool muted;
 
   @override
   ConsumerState<_SitterBookingCard> createState() => _SitterBookingCardState();
@@ -396,98 +413,130 @@ class _SitterBookingCardState extends ConsumerState<_SitterBookingCard> {
     final showPendingActions = canSitterRespondToBooking(booking);
     final showComplete = canSitterCompleteBooking(booking);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              booking.serviceNameSnapshot,
-              style: theme.textTheme.titleMedium,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Pet: ${booking.petNameSnapshot}',
-              style: theme.textTheme.bodyLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              formatBookingDate(localStart),
-              style: theme.textTheme.bodyMedium,
-            ),
-            Text(
-              formatBookingTime(localStart),
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              SitterServicesScreen.formatPrice(booking.priceSnapshot),
-              style: theme.textTheme.titleSmall,
-            ),
-            if (duration != null) ...[
+    return Opacity(
+      opacity: widget.muted ? 0.88 : 1,
+      child: Card(
+        elevation: widget.muted ? 0 : null,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: widget.muted
+              ? BorderSide(
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.45,
+                  ),
+                )
+              : BorderSide.none,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                booking.serviceNameSnapshot,
+                style: theme.textTheme.titleMedium,
+              ),
               const SizedBox(height: 4),
               Text(
-                SitterServicesScreen.formatDuration(duration),
-                style: theme.textTheme.bodySmall,
+                'Pet: ${booking.petNameSnapshot}',
+                style: theme.textTheme.bodyLarge,
               ),
-            ],
-            if (notes != null && notes.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.calendar_today_outlined,
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          formatBookingDate(localStart),
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                        Text(
+                          formatBookingTime(localStart),
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
-              Text('Owner notes:', style: theme.textTheme.titleSmall),
-              const SizedBox(height: 4),
               Text(
-                '“$notes”',
-                style: theme.textTheme.bodyMedium,
-                softWrap: true,
-              ),
-            ],
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                Chip(
-                  label: Text(booking.status.displayName),
-                  visualDensity: VisualDensity.compact,
+                SitterServicesScreen.formatPrice(booking.priceSnapshot),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w600,
                 ),
-                if (showPayment)
-                  bookingPaymentStatusChip(theme, booking.paymentStatus),
+              ),
+              if (duration != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  SitterServicesScreen.formatDuration(duration),
+                  style: theme.textTheme.bodySmall,
+                ),
               ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              sitterBookingStatusDescription(booking.status),
-              style: theme.textTheme.bodySmall,
-            ),
-            if (showPendingActions) ...[
-              const SizedBox(height: 16),
+              if (notes != null && notes.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text('Owner notes:', style: theme.textTheme.titleSmall),
+                const SizedBox(height: 4),
+                Text(
+                  '“$notes”',
+                  style: theme.textTheme.bodyMedium,
+                  softWrap: true,
+                ),
+              ],
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  FilledButton(
-                    key: Key('accept_booking_${booking.id}'),
-                    onPressed: _accept,
-                    child: const Text('Accept Booking'),
-                  ),
-                  OutlinedButton(
-                    key: Key('decline_booking_${booking.id}'),
-                    onPressed: _decline,
-                    child: const Text('Decline Booking'),
-                  ),
+                  bookingStatusChip(theme, booking.status),
+                  if (showPayment)
+                    bookingPaymentStatusChip(theme, booking.paymentStatus),
                 ],
               ),
-            ],
-            if (showComplete) ...[
-              const SizedBox(height: 16),
-              FilledButton(
-                key: Key('complete_booking_${booking.id}'),
-                onPressed: _complete,
-                child: const Text('Mark as Completed'),
+              const SizedBox(height: 4),
+              Text(
+                sitterBookingStatusDescription(booking.status),
+                style: theme.textTheme.bodySmall,
               ),
+              if (showPendingActions) ...[
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    FilledButton(
+                      key: Key('accept_booking_${booking.id}'),
+                      onPressed: _accept,
+                      child: const Text('Accept Booking'),
+                    ),
+                    OutlinedButton(
+                      key: Key('decline_booking_${booking.id}'),
+                      onPressed: _decline,
+                      child: const Text('Decline Booking'),
+                    ),
+                  ],
+                ),
+              ],
+              if (showComplete) ...[
+                const SizedBox(height: 16),
+                FilledButton(
+                  key: Key('complete_booking_${booking.id}'),
+                  onPressed: _complete,
+                  child: const Text('Mark as Completed'),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
+import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_content_container.dart';
 import '../../core/widgets/error_message.dart';
 import '../../core/widgets/loading_indicator.dart';
 import '../../core/widgets/primary_button.dart';
@@ -54,46 +56,29 @@ class OwnerBookingsScreen extends ConsumerWidget {
 
           return LayoutBuilder(
             builder: (context, constraints) {
-              final horizontalPadding = constraints.maxWidth > 600
-                  ? 48.0
-                  : 16.0;
-
               return RefreshIndicator(
                 onRefresh: () => _refresh(ref),
                 child: CustomScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
-                    SliverPadding(
-                      padding: EdgeInsets.fromLTRB(
-                        horizontalPadding,
-                        16,
-                        horizontalPadding,
-                        8,
-                      ),
-                      sliver: SliverToBoxAdapter(
-                        child: Align(
-                          alignment: Alignment.topCenter,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 560),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    'My Bookings',
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.titleLarge,
-                                  ),
-                                ),
-                                if (kIsWeb)
-                                  IconButton(
-                                    tooltip: 'Refresh',
-                                    onPressed: () => _refresh(ref),
-                                    icon: const Icon(Icons.refresh),
-                                  ),
-                              ],
+                    SliverToBoxAdapter(
+                      child: AppContentContainer(
+                        maxWidth: AppContentWidth.narrow,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'My Bookings',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
                             ),
-                          ),
+                            if (kIsWeb)
+                              IconButton(
+                                tooltip: 'Refresh',
+                                onPressed: () => _refresh(ref),
+                                icon: const Icon(Icons.refresh),
+                              ),
+                          ],
                         ),
                       ),
                     ),
@@ -102,7 +87,6 @@ class OwnerBookingsScreen extends ConsumerWidget {
                         context,
                         title: 'Upcoming',
                         bookings: sections.upcoming,
-                        horizontalPadding: horizontalPadding,
                         ref: ref,
                       ),
                     if (sections.history.isNotEmpty)
@@ -110,8 +94,8 @@ class OwnerBookingsScreen extends ConsumerWidget {
                         context,
                         title: 'History',
                         bookings: sections.history,
-                        horizontalPadding: horizontalPadding,
                         ref: ref,
+                        muted: true,
                       ),
                     const SliverToBoxAdapter(child: SizedBox(height: 24)),
                   ],
@@ -128,52 +112,38 @@ class OwnerBookingsScreen extends ConsumerWidget {
     BuildContext context, {
     required String title,
     required List<BookingModel> bookings,
-    required double horizontalPadding,
     required WidgetRef ref,
+    bool muted = false,
   }) {
     return [
-      SliverPadding(
-        padding: EdgeInsets.fromLTRB(
-          horizontalPadding,
-          16,
-          horizontalPadding,
-          8,
-        ),
-        sliver: SliverToBoxAdapter(
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: Text(
-                title,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-          ),
+      SliverToBoxAdapter(
+        child: AppContentContainer(
+          maxWidth: AppContentWidth.narrow,
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Text(title, style: Theme.of(context).textTheme.titleMedium),
         ),
       ),
-      SliverPadding(
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate((context, index) {
-            return Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 560),
-                child: Padding(
+      SliverToBoxAdapter(
+        child: AppContentContainer(
+          maxWidth: AppContentWidth.narrow,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+          child: Column(
+            children: [
+              for (var i = 0; i < bookings.length; i++)
+                Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: _OwnerBookingCard(
-                    booking: bookings[index],
+                    booking: bookings[i],
+                    muted: muted,
                     onUpdated: () async {
                       ref.invalidate(currentOwnerBookingsProvider);
-                      ref.invalidate(bookingByIdProvider(bookings[index].id));
+                      ref.invalidate(bookingByIdProvider(bookings[i].id));
                       await ref.read(currentOwnerBookingsProvider.future);
                     },
                   ),
                 ),
-              ),
-            );
-          }, childCount: bookings.length),
+            ],
+          ),
         ),
       ),
     ];
@@ -218,9 +188,26 @@ class _EmptyBookingsState extends StatelessWidget {
                           icon: const Icon(Icons.refresh),
                         ),
                       ),
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer.withValues(
+                          alpha: 0.55,
+                        ),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.event_busy_outlined,
+                        size: 36,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     Text(
                       'You have no bookings yet.',
                       style: theme.textTheme.titleMedium,
+                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -246,10 +233,15 @@ class _EmptyBookingsState extends StatelessWidget {
 }
 
 class _OwnerBookingCard extends ConsumerStatefulWidget {
-  const _OwnerBookingCard({required this.booking, required this.onUpdated});
+  const _OwnerBookingCard({
+    required this.booking,
+    required this.onUpdated,
+    this.muted = false,
+  });
 
   final BookingModel booking;
   final Future<void> Function() onUpdated;
+  final bool muted;
 
   @override
   ConsumerState<_OwnerBookingCard> createState() => _OwnerBookingCardState();
@@ -258,7 +250,7 @@ class _OwnerBookingCard extends ConsumerStatefulWidget {
 class _OwnerBookingCardState extends ConsumerState<_OwnerBookingCard> {
   bool get _canCancel => canOwnerCancelBooking(widget.booking);
 
-  bool get _canDemoPay => canOwnerDemoPayBooking(widget.booking);
+  bool get _canPayByCard => canOwnerDemoPayBooking(widget.booking);
 
   Future<void> _confirmCancel() async {
     if (!_canCancel) return;
@@ -364,117 +356,6 @@ class _OwnerBookingCardState extends ConsumerState<_OwnerBookingCard> {
     );
   }
 
-  Future<void> _confirmDemoPay() async {
-    if (!_canDemoPay) return;
-
-    final booking = widget.booking;
-    final serviceName = booking.serviceNameSnapshot;
-    final amount = SitterServicesScreen.formatPrice(booking.priceSnapshot);
-    final bookingId = booking.id;
-    final messenger = ScaffoldMessenger.of(context);
-
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) {
-        var dialogBusy = false;
-        String? dialogError;
-
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            Future<void> confirm() async {
-              if (dialogBusy) return;
-              setDialogState(() {
-                dialogBusy = true;
-                dialogError = null;
-              });
-
-              try {
-                await ref
-                    .read(bookingRepositoryProvider)
-                    .demoPayBooking(bookingId);
-
-                if (dialogContext.mounted) {
-                  Navigator.of(dialogContext).pop();
-                }
-
-                await widget.onUpdated();
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text('Demo payment completed for $serviceName.'),
-                  ),
-                );
-              } on BookingException catch (error) {
-                if (!context.mounted) return;
-                setDialogState(() {
-                  dialogBusy = false;
-                  dialogError = error.message;
-                });
-              } catch (_) {
-                if (!context.mounted) return;
-                setDialogState(() {
-                  dialogBusy = false;
-                  dialogError =
-                      'Unable to complete the demo payment. Please try again.';
-                });
-              }
-            }
-
-            return PopScope(
-              canPop: !dialogBusy,
-              child: AlertDialog(
-                title: const Text('Demo payment'),
-                content: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text(
-                      'This is a simulated payment for the PawPal university '
-                      'project. No real money will be charged and no card or '
-                      'banking information is required.',
-                    ),
-                    const SizedBox(height: 16),
-                    Text('Service: $serviceName'),
-                    const SizedBox(height: 4),
-                    Text('Amount: $amount'),
-                    if (dialogError != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        dialogError!,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: dialogBusy
-                        ? null
-                        : () => Navigator.of(dialogContext).pop(),
-                    child: const Text('Cancel'),
-                  ),
-                  FilledButton(
-                    key: const Key('confirm_demo_pay_booking'),
-                    onPressed: dialogBusy ? null : confirm,
-                    child: dialogBusy
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Confirm Demo Payment'),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -487,91 +368,154 @@ class _OwnerBookingCardState extends ConsumerState<_OwnerBookingCard> {
         booking.status == BookingStatus.accepted ||
         booking.paymentStatus != BookingPaymentStatus.unpaid;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              booking.serviceNameSnapshot,
-              style: theme.textTheme.titleMedium,
-            ),
-            const SizedBox(height: 4),
-            Text(booking.petNameSnapshot, style: theme.textTheme.bodyLarge),
-            const SizedBox(height: 8),
-            Text(
-              formatBookingDate(localStart),
-              style: theme.textTheme.bodyMedium,
-            ),
-            Text(
-              formatBookingTime(localStart),
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              SitterServicesScreen.formatPrice(booking.priceSnapshot),
-              style: theme.textTheme.titleSmall,
-            ),
-            if (duration != null) ...[
-              const SizedBox(height: 4),
+    return Opacity(
+      opacity: widget.muted ? 0.88 : 1,
+      child: Card(
+        elevation: widget.muted ? 0 : null,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: widget.muted
+              ? BorderSide(
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.45,
+                  ),
+                )
+              : BorderSide.none,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               Text(
-                SitterServicesScreen.formatDuration(duration),
-                style: theme.textTheme.bodySmall,
+                booking.serviceNameSnapshot,
+                style: theme.textTheme.titleMedium,
               ),
-            ],
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                Chip(
-                  label: Text(booking.status.displayName),
-                  visualDensity: VisualDensity.compact,
-                ),
-                if (showPayment)
-                  bookingPaymentStatusChip(theme, booking.paymentStatus),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              bookingStatusDescription(booking.status),
-              style: theme.textTheme.bodySmall,
-            ),
-            if (notes != null && notes.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(booking.petNameSnapshot, style: theme.textTheme.bodyLarge),
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.calendar_today_outlined,
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          formatBookingDate(localStart),
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                        Text(
+                          formatBookingTime(localStart),
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
               Text(
-                '“$notes”',
-                style: theme.textTheme.bodyMedium,
-                softWrap: true,
+                SitterServicesScreen.formatPrice(booking.priceSnapshot),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ],
-            if (_canDemoPay || _canCancel) ...[
-              const SizedBox(height: 16),
+              if (duration != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  SitterServicesScreen.formatDuration(duration),
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+              const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  if (_canDemoPay)
-                    FilledButton(
-                      key: Key('demo_pay_booking_${booking.id}'),
-                      onPressed: _confirmDemoPay,
-                      child: const Text('Demo Pay'),
-                    ),
-                  if (_canCancel)
-                    OutlinedButton(
-                      key: Key('cancel_booking_${booking.id}'),
-                      onPressed: _confirmCancel,
-                      child: const Text('Cancel Booking'),
-                    ),
+                  bookingStatusChip(theme, booking.status),
+                  if (showPayment)
+                    bookingPaymentStatusChip(theme, booking.paymentStatus),
                 ],
               ),
+              const SizedBox(height: 4),
+              Text(
+                bookingStatusDescription(booking.status),
+                style: theme.textTheme.bodySmall,
+              ),
+              if (notes != null && notes.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  '“$notes”',
+                  style: theme.textTheme.bodyMedium,
+                  softWrap: true,
+                ),
+              ],
+              if (_canPayByCard || _canCancel) ...[
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (_canPayByCard)
+                      FilledButton(
+                        key: Key('pay_by_card_booking_${booking.id}'),
+                        onPressed: () =>
+                            context.push(AppRoutes.bookingPayment(booking.id)),
+                        child: const Text('Pay by Card'),
+                      ),
+                    if (_canCancel)
+                      OutlinedButton(
+                        key: Key('cancel_booking_${booking.id}'),
+                        onPressed: _confirmCancel,
+                        child: const Text('Cancel Booking'),
+                      ),
+                  ],
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
   }
+}
+
+/// Shared booking-status chip for owner and sitter booking cards.
+Widget bookingStatusChip(ThemeData theme, BookingStatus status) {
+  final Color backgroundColor;
+  final Color labelColor;
+
+  switch (status) {
+    case BookingStatus.pending:
+      backgroundColor = AppColors.warningContainer;
+      labelColor = AppColors.onWarningContainer;
+    case BookingStatus.accepted:
+    case BookingStatus.completed:
+      backgroundColor = AppColors.successContainer;
+      labelColor = AppColors.onSuccessContainer;
+    case BookingStatus.declined:
+      backgroundColor = AppColors.errorContainer;
+      labelColor = AppColors.onErrorContainer;
+    case BookingStatus.cancelled:
+      backgroundColor = theme.colorScheme.surfaceContainerHighest;
+      labelColor = theme.colorScheme.onSurfaceVariant;
+  }
+
+  return Chip(
+    label: Text(status.displayName),
+    visualDensity: VisualDensity.compact,
+    backgroundColor: backgroundColor,
+    side: BorderSide.none,
+    labelStyle: theme.textTheme.labelLarge?.copyWith(color: labelColor),
+  );
 }
 
 /// Shared payment-status chip for owner and sitter booking cards.

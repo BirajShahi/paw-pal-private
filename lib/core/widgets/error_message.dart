@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
-
 /// Displays an error message with optional retry action.
 class ErrorMessage extends StatelessWidget {
   const ErrorMessage({super.key, required this.message, this.onRetry});
@@ -11,41 +9,49 @@ class ErrorMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
-        child: Card(
-          color: AppColors.errorContainer,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 480),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: scheme.errorContainer,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  Icons.error_outline,
-                  color: AppColors.error,
-                  size: 32,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  message,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: AppColors.onErrorContainer,
+                Icon(Icons.error_outline, color: scheme.error, size: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    message,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onErrorContainer,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
                 ),
-                if (onRetry != null) ...[
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: onRetry,
-                    child: const Text('Try again'),
-                  ),
-                ],
               ],
             ),
-          ),
+            if (onRetry != null) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh, size: 18),
+                  label: const Text('Try again'),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );

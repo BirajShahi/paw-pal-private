@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
+import '../../core/widgets/app_content_container.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/error_message.dart';
 import '../../core/widgets/loading_indicator.dart';
@@ -256,9 +257,9 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
     return Align(
       alignment: Alignment.topCenter,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: AppContentContainer(
+          maxWidth: AppContentWidth.form,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
+import '../../core/widgets/app_content_container.dart';
+import '../../core/widgets/app_section.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/error_message.dart';
 import '../../core/widgets/loading_indicator.dart';
@@ -229,108 +231,109 @@ class _AddSitterServiceScreenState
       }
     }
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final horizontalPadding = constraints.maxWidth > 600 ? 48.0 : 24.0;
-
-        return SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: 24,
-          ),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    DropdownButtonFormField<String>(
-                      // ignore: deprecated_member_use
-                      value: selectedId,
-                      decoration: const InputDecoration(labelText: 'Service'),
-                      items: [
-                        for (final service in available)
-                          DropdownMenuItem(
-                            value: service.id,
-                            child: Text(
-                              '${service.name} — ${service.category.displayName}',
-                              overflow: TextOverflow.ellipsis,
-                            ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: AppContentContainer(
+        maxWidth: AppContentWidth.form,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppFormSection(
+                title: 'Service Information',
+                icon: Icons.miscellaneous_services_outlined,
+                children: [
+                  DropdownButtonFormField<String>(
+                    // ignore: deprecated_member_use
+                    value: selectedId,
+                    decoration: const InputDecoration(labelText: 'Service'),
+                    items: [
+                      for (final service in available)
+                        DropdownMenuItem(
+                          value: service.id,
+                          child: Text(
+                            '${service.name} — ${service.category.displayName}',
+                            overflow: TextOverflow.ellipsis,
                           ),
-                      ],
-                      onChanged: _isBusy
-                          ? null
-                          : (value) =>
-                                setState(() => _selectedServiceId = value),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Select a service';
-                        }
-                        return null;
-                      },
-                    ),
-                    if (selected != null) ...[
-                      const SizedBox(height: 16),
-                      _ServiceDetailsCard(service: selected),
+                        ),
                     ],
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: _priceController,
-                      labelText: 'Price',
-                      hintText: 'e.g. 20, 45.50, 120',
-                      prefixText: '\$ ',
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      textInputAction: TextInputAction.next,
-                      enabled: !_isBusy,
-                      validator: validateSitterServicePrice,
-                    ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: _durationController,
-                      labelText: 'Estimated duration (optional)',
-                      hintText: 'e.g. 30, 60, 120 minutes',
-                      keyboardType: TextInputType.number,
-                      textInputAction: TextInputAction.next,
-                      enabled: !_isBusy,
-                      validator: validateSitterServiceDuration,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Examples: 30 minutes, 60 minutes, 120 minutes',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: _notesController,
-                      labelText: 'Service notes (optional)',
-                      hintText:
-                          'Describe what clients should know about how you '
-                          'provide this service.',
-                      maxLines: 4,
-                      enabled: !_isBusy,
-                      validator: validateSitterServiceNotes,
-                    ),
-                    const SizedBox(height: 24),
-                    if (_saveError != null) ...[
-                      ErrorMessage(message: _saveError!),
-                      const SizedBox(height: 16),
-                    ],
-                    PrimaryButton(
-                      label: 'Add Service',
-                      isLoading: _isSaving,
-                      onPressed: _isBusy ? null : () => _submit(available),
-                    ),
-                  ],
-                ),
+                    onChanged: _isBusy
+                        ? null
+                        : (value) => setState(() => _selectedServiceId = value),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Select a service';
+                      }
+                      return null;
+                    },
+                  ),
+                  if (selected != null) _ServiceDetailsCard(service: selected),
+                ],
               ),
-            ),
+              const SizedBox(height: 16),
+              AppFormSection(
+                title: 'Pricing & Duration',
+                icon: Icons.payments_outlined,
+                children: [
+                  AppTextField(
+                    controller: _priceController,
+                    labelText: 'Price',
+                    hintText: 'e.g. 20, 45.50, 120',
+                    prefixText: '\$ ',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    textInputAction: TextInputAction.next,
+                    enabled: !_isBusy,
+                    validator: validateSitterServicePrice,
+                  ),
+                  AppTextField(
+                    controller: _durationController,
+                    labelText: 'Estimated duration (optional)',
+                    hintText: 'e.g. 30, 60, 120 minutes',
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.next,
+                    enabled: !_isBusy,
+                    validator: validateSitterServiceDuration,
+                  ),
+                  Text(
+                    'Examples: 30 minutes, 60 minutes, 120 minutes',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              AppFormSection(
+                title: 'Provider Notes',
+                icon: Icons.notes_outlined,
+                children: [
+                  AppTextField(
+                    controller: _notesController,
+                    labelText: 'Service notes (optional)',
+                    hintText:
+                        'Describe what clients should know about how you '
+                        'provide this service.',
+                    maxLines: 4,
+                    enabled: !_isBusy,
+                    validator: validateSitterServiceNotes,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              if (_saveError != null) ...[
+                ErrorMessage(message: _saveError!),
+                const SizedBox(height: 16),
+              ],
+              PrimaryButton(
+                label: 'Add Service',
+                isLoading: _isSaving,
+                onPressed: _isBusy ? null : () => _submit(available),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
+import '../../core/widgets/app_content_container.dart';
+import '../../core/widgets/app_section.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/error_message.dart';
 import '../../core/widgets/loading_indicator.dart';
@@ -181,104 +183,114 @@ class _EditSitterServiceScreenState
   Widget _buildForm(SitterServiceModel offering) {
     final service = offering.service;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final horizontalPadding = constraints.maxWidth > 600 ? 48.0 : 24.0;
-
-        return SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: 24,
-          ),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (service != null)
-                      _ReadOnlyServiceDetails(service: service),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: _priceController,
-                      labelText: 'Price',
-                      hintText: 'e.g. 20, 45.50, 120',
-                      prefixText: '\$ ',
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      textInputAction: TextInputAction.next,
-                      enabled: !_isBusy,
-                      validator: validateSitterServicePrice,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: AppContentContainer(
+        maxWidth: AppContentWidth.form,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (service != null)
+                AppFormSection(
+                  title: 'Service Information',
+                  icon: Icons.miscellaneous_services_outlined,
+                  children: [_ReadOnlyServiceDetails(service: service)],
+                ),
+              const SizedBox(height: 16),
+              AppFormSection(
+                title: 'Pricing & Duration',
+                icon: Icons.payments_outlined,
+                children: [
+                  AppTextField(
+                    controller: _priceController,
+                    labelText: 'Price',
+                    hintText: 'e.g. 20, 45.50, 120',
+                    prefixText: '\$ ',
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
                     ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: _durationController,
-                      labelText: 'Estimated duration (optional)',
-                      hintText: 'e.g. 30, 60, 120 minutes',
-                      keyboardType: TextInputType.number,
-                      textInputAction: TextInputAction.next,
-                      enabled: !_isBusy,
-                      validator: validateSitterServiceDuration,
+                    textInputAction: TextInputAction.next,
+                    enabled: !_isBusy,
+                    validator: validateSitterServicePrice,
+                  ),
+                  AppTextField(
+                    controller: _durationController,
+                    labelText: 'Estimated duration (optional)',
+                    hintText: 'e.g. 30, 60, 120 minutes',
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.next,
+                    enabled: !_isBusy,
+                    validator: validateSitterServiceDuration,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              AppFormSection(
+                title: 'Provider Notes',
+                icon: Icons.notes_outlined,
+                children: [
+                  AppTextField(
+                    controller: _notesController,
+                    labelText: 'Service notes (optional)',
+                    hintText:
+                        'Describe what clients should know about how you '
+                        'provide this service.',
+                    maxLines: 4,
+                    enabled: !_isBusy,
+                    validator: validateSitterServiceNotes,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              AppFormSection(
+                title: 'Availability Status',
+                icon: Icons.visibility_outlined,
+                children: [
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      _isActive
+                          ? 'Active — visible to pet owners'
+                          : 'Inactive — temporarily hidden from pet owners',
                     ),
-                    const SizedBox(height: 16),
-                    AppTextField(
-                      controller: _notesController,
-                      labelText: 'Service notes (optional)',
-                      hintText:
-                          'Describe what clients should know about how you '
-                          'provide this service.',
-                      maxLines: 4,
-                      enabled: !_isBusy,
-                      validator: validateSitterServiceNotes,
+                    value: _isActive,
+                    onChanged: _isBusy
+                        ? null
+                        : (value) => setState(() => _isActive = value),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              if (_saveError != null) ...[
+                ErrorMessage(message: _saveError!),
+                const SizedBox(height: 16),
+              ],
+              PrimaryButton(
+                label: 'Save changes',
+                isLoading: _isSaving,
+                onPressed: _isBusy ? null : () => _save(offering),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: _isBusy ? null : () => _delete(offering),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Theme.of(context).colorScheme.error,
+                    side: BorderSide(
+                      color: Theme.of(context).colorScheme.error,
                     ),
-                    const SizedBox(height: 16),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        _isActive
-                            ? 'Active — visible to pet owners'
-                            : 'Inactive — temporarily hidden from pet owners',
-                      ),
-                      value: _isActive,
-                      onChanged: _isBusy
-                          ? null
-                          : (value) => setState(() => _isActive = value),
-                    ),
-                    const SizedBox(height: 24),
-                    if (_saveError != null) ...[
-                      ErrorMessage(message: _saveError!),
-                      const SizedBox(height: 16),
-                    ],
-                    PrimaryButton(
-                      label: 'Save changes',
-                      isLoading: _isSaving,
-                      onPressed: _isBusy ? null : () => _save(offering),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton(
-                        onPressed: _isBusy ? null : () => _delete(offering),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Theme.of(context).colorScheme.error,
-                          side: BorderSide(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                        ),
-                        child: const Text('Delete Service'),
-                      ),
-                    ),
-                  ],
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text('Delete Service'),
                 ),
               ),
-            ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

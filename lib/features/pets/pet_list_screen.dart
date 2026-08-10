@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/router/app_router.dart';
+import '../../core/widgets/app_content_container.dart';
+import '../../core/widgets/app_empty_state.dart';
 import '../../core/widgets/error_message.dart';
 import '../../core/widgets/loading_indicator.dart';
 import 'pet_model.dart';
@@ -48,32 +50,38 @@ class PetListScreen extends ConsumerWidget {
         ),
         data: (pets) {
           if (pets.isEmpty) {
-            return _EmptyPetsState(
-              onRefresh: () => ref.invalidate(currentOwnerPetsProvider),
-              onAdd: () => context.go(AppRoutes.petNew),
+            return AppEmptyState(
+              icon: Icons.pets_outlined,
+              title: 'No pets yet',
+              message:
+                  'Add a pet profile to enable personalised care and AI service '
+                  'recommendations such as Full Grooming, Wash and Dry, '
+                  'De-shedding and Nail Clipping.',
+              actionLabel: 'Add pet',
+              onAction: () => context.go(AppRoutes.petNew),
+              secondaryLabel: 'Refresh',
+              onSecondary: () => ref.invalidate(currentOwnerPetsProvider),
             );
           }
 
           return LayoutBuilder(
             builder: (context, constraints) {
               final wide = constraints.maxWidth > 700;
-              final horizontalPadding = constraints.maxWidth > 600
-                  ? 48.0
-                  : 16.0;
 
               return RefreshIndicator(
                 onRefresh: () => _refresh(ref),
                 child: CustomScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
-                    SliverPadding(
-                      padding: EdgeInsets.fromLTRB(
-                        horizontalPadding,
-                        16,
-                        horizontalPadding,
-                        24,
-                      ),
-                      sliver: SliverToBoxAdapter(
+                    SliverToBoxAdapter(
+                      child: AppContentContainer(
+                        maxWidth: AppContentWidth.page,
+                        padding: EdgeInsets.fromLTRB(
+                          constraints.maxWidth > 600 ? 24 : 16,
+                          12,
+                          constraints.maxWidth > 600 ? 24 : 16,
+                          8,
+                        ),
                         child: Row(
                           children: [
                             Expanded(
@@ -88,10 +96,10 @@ class PetListScreen extends ConsumerWidget {
                                 onPressed: () => _refresh(ref),
                                 icon: const Icon(Icons.refresh),
                               ),
-                            IconButton(
-                              tooltip: 'Add pet',
+                            FilledButton.tonalIcon(
                               onPressed: () => context.go(AppRoutes.petNew),
                               icon: const Icon(Icons.add),
+                              label: const Text('Add'),
                             ),
                           ],
                         ),
@@ -99,35 +107,43 @@ class PetListScreen extends ConsumerWidget {
                     ),
                     SliverPadding(
                       padding: EdgeInsets.symmetric(
-                        horizontal: horizontalPadding,
+                        horizontal: constraints.maxWidth > 600 ? 24 : 16,
+                        vertical: 8,
                       ),
-                      sliver: wide
-                          ? SliverGrid(
-                              gridDelegate:
-                                  const SliverGridDelegateWithMaxCrossAxisExtent(
-                                    maxCrossAxisExtent: 360,
-                                    mainAxisSpacing: 12,
-                                    crossAxisSpacing: 12,
-                                    childAspectRatio: 1.35,
-                                  ),
-                              delegate: SliverChildBuilderDelegate((
-                                context,
-                                index,
-                              ) {
-                                return _PetCard(pet: pets[index]);
-                              }, childCount: pets.length),
-                            )
-                          : SliverList(
-                              delegate: SliverChildBuilderDelegate((
-                                context,
-                                index,
-                              ) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 12),
-                                  child: _PetCard(pet: pets[index]),
-                                );
-                              }, childCount: pets.length),
+                      sliver: SliverToBoxAdapter(
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(
+                              maxWidth: AppContentWidth.page,
                             ),
+                            child: wide
+                                ? GridView.builder(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: pets.length,
+                                    gridDelegate:
+                                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                                          maxCrossAxisExtent: 380,
+                                          mainAxisSpacing: 12,
+                                          crossAxisSpacing: 12,
+                                          childAspectRatio: 1.55,
+                                        ),
+                                    itemBuilder: (context, index) {
+                                      return _PetCard(pet: pets[index]);
+                                    },
+                                  )
+                                : Column(
+                                    children: [
+                                      for (final pet in pets) ...[
+                                        _PetCard(pet: pet),
+                                        const SizedBox(height: 12),
+                                      ],
+                                    ],
+                                  ),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -140,61 +156,6 @@ class PetListScreen extends ConsumerWidget {
   }
 }
 
-class _EmptyPetsState extends StatelessWidget {
-  const _EmptyPetsState({required this.onRefresh, required this.onAdd});
-
-  final VoidCallback onRefresh;
-  final VoidCallback onAdd;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.pets_outlined,
-                size: 56,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'No pets yet',
-                style: Theme.of(context).textTheme.headlineSmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Add a pet profile to enable personalised care and AI service '
-                'recommendations such as Full Grooming, Wash and Dry, '
-                'De-shedding and Nail Clipping.',
-                style: Theme.of(context).textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: onAdd,
-                icon: const Icon(Icons.add),
-                label: const Text('Add pet'),
-              ),
-              const SizedBox(height: 8),
-              TextButton.icon(
-                onPressed: onRefresh,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Refresh'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _PetCard extends StatelessWidget {
   const _PetCard({required this.pet});
 
@@ -202,10 +163,11 @@ class _PetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final ageLabel = PetListScreen.formatAge(pet.ageYears);
-    final details = <String>[
-      pet.species,
-      if (pet.breed != null && pet.breed!.isNotEmpty) pet.breed!,
+    final breed = pet.breed?.trim();
+    final chips = <String>[
       ?ageLabel,
       if (pet.size != null && pet.size!.isNotEmpty) pet.size!,
       if (pet.coatType != null && pet.coatType!.isNotEmpty) pet.coatType!,
@@ -213,7 +175,7 @@ class _PetCard extends StatelessWidget {
 
     return Card(
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         onTap: () => context.go(AppRoutes.petEdit(pet.id)),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -221,31 +183,49 @@ class _PetCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               CircleAvatar(
-                radius: 28,
-                backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                child: Icon(
-                  Icons.pets,
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
-                ),
+                radius: 26,
+                backgroundColor: scheme.primaryContainer,
+                child: Icon(Icons.pets, color: scheme.onPrimaryContainer),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Text(pet.name, style: theme.textTheme.titleMedium),
+                    const SizedBox(height: 4),
                     Text(
-                      pet.name,
-                      style: Theme.of(context).textTheme.titleMedium,
+                      breed != null && breed.isNotEmpty
+                          ? '${pet.species} · $breed'
+                          : pet.species,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      details.join(' · '),
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
+                    if (chips.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final chip in chips)
+                            Chip(
+                              label: Text(chip),
+                              visualDensity: VisualDensity.compact,
+                              materialTapTargetSize:
+                                  MaterialTapTargetSize.shrinkWrap,
+                            ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right),
+              IconButton(
+                tooltip: 'Edit',
+                onPressed: () => context.go(AppRoutes.petEdit(pet.id)),
+                icon: const Icon(Icons.edit_outlined),
+              ),
             ],
           ),
         ),
