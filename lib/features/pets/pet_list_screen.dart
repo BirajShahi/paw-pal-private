@@ -179,11 +179,11 @@ class _PetCard extends StatelessWidget {
     final scheme = theme.colorScheme;
     final ageLabel = PetListScreen.formatAge(pet.ageYears)?.trim();
     final breed = pet.breed?.trim();
-    final size = pet.size?.trim();
+    final sizeLabel = _formatSizeLabel(pet.size);
     final coatType = pet.coatType?.trim();
     final chips = <String>[
       if (ageLabel != null && ageLabel.isNotEmpty) ageLabel,
-      if (size != null && size.isNotEmpty) size,
+      ?sizeLabel,
       if (coatType != null && coatType.isNotEmpty) coatType,
     ];
 
@@ -264,5 +264,21 @@ class _PetCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Maps stored size wire values to readable chip labels.
+  static String? _formatSizeLabel(String? size) {
+    final value = size?.trim();
+    if (value == null || value.isEmpty) return null;
+    switch (value.toLowerCase()) {
+      case 'small':
+        return 'Small';
+      case 'medium':
+        return 'Medium';
+      case 'large':
+        return 'Large';
+      default:
+        return value;
+    }
   }
 }
