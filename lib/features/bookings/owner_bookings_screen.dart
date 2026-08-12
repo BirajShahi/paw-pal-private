@@ -48,7 +48,7 @@ class OwnerBookingsScreen extends ConsumerWidget {
           if (bookings.isEmpty) {
             return _EmptyBookingsState(
               onRefresh: () => _refresh(ref),
-              onFindService: () => context.go(AppRoutes.aiRecommendation),
+              onFindService: () => context.push(AppRoutes.aiRecommendation),
             );
           }
 
@@ -490,6 +490,9 @@ class _OwnerBookingCardState extends ConsumerState<_OwnerBookingCard> {
 
 /// Shared booking-status chip for owner and sitter booking cards.
 Widget bookingStatusChip(ThemeData theme, BookingStatus status) {
+  final label = status.displayName.trim();
+  if (label.isEmpty) return const SizedBox.shrink();
+
   final Color backgroundColor;
   final Color labelColor;
 
@@ -498,6 +501,8 @@ Widget bookingStatusChip(ThemeData theme, BookingStatus status) {
       backgroundColor = AppColors.warningContainer;
       labelColor = AppColors.onWarningContainer;
     case BookingStatus.accepted:
+      backgroundColor = AppColors.primaryContainer;
+      labelColor = AppColors.primaryDark;
     case BookingStatus.completed:
       backgroundColor = AppColors.successContainer;
       labelColor = AppColors.onSuccessContainer;
@@ -510,26 +515,50 @@ Widget bookingStatusChip(ThemeData theme, BookingStatus status) {
   }
 
   return Chip(
-    label: Text(status.displayName),
+    label: Text(label),
     visualDensity: VisualDensity.compact,
     backgroundColor: backgroundColor,
     side: BorderSide.none,
-    labelStyle: theme.textTheme.labelLarge?.copyWith(color: labelColor),
+    labelStyle: theme.textTheme.labelLarge?.copyWith(
+      color: labelColor,
+      fontWeight: FontWeight.w500,
+    ),
   );
 }
 
+/// Soft purple-grey surface for demo-refunded payment chips.
+const Color _demoRefundedContainer = Color(0xFFE8E4EE);
+const Color _onDemoRefundedContainer = Color(0xFF3A3148);
+
 /// Shared payment-status chip for owner and sitter booking cards.
 Widget bookingPaymentStatusChip(ThemeData theme, BookingPaymentStatus status) {
-  final isDemoPaid = status == BookingPaymentStatus.demoPaid;
+  final label = status.displayName.trim();
+  if (label.isEmpty) return const SizedBox.shrink();
+
+  final Color backgroundColor;
+  final Color labelColor;
+
+  switch (status) {
+    case BookingPaymentStatus.unpaid:
+      backgroundColor = AppColors.warningContainer;
+      labelColor = AppColors.onWarningContainer;
+    case BookingPaymentStatus.demoPaid:
+      backgroundColor = AppColors.primaryContainer;
+      labelColor = AppColors.primaryDark;
+    case BookingPaymentStatus.demoRefunded:
+      backgroundColor = _demoRefundedContainer;
+      labelColor = _onDemoRefundedContainer;
+  }
+
   return Chip(
-    label: Text(status.displayName),
+    label: Text(label),
     visualDensity: VisualDensity.compact,
-    backgroundColor: isDemoPaid ? theme.colorScheme.primaryContainer : null,
-    labelStyle: isDemoPaid
-        ? theme.textTheme.labelLarge?.copyWith(
-            color: theme.colorScheme.onPrimaryContainer,
-          )
-        : null,
+    backgroundColor: backgroundColor,
+    side: BorderSide.none,
+    labelStyle: theme.textTheme.labelLarge?.copyWith(
+      color: labelColor,
+      fontWeight: FontWeight.w500,
+    ),
   );
 }
 

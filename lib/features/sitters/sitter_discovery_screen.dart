@@ -8,6 +8,7 @@ import '../../core/widgets/app_content_container.dart';
 import '../../core/widgets/app_empty_state.dart';
 import '../../core/widgets/error_message.dart';
 import '../../core/widgets/loading_indicator.dart';
+import '../services/service_filter_chip_bar.dart';
 import '../services/service_model.dart';
 import '../services/service_providers.dart';
 import '../services/sitter_service_model.dart';
@@ -195,6 +196,7 @@ class _FilterPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final compact = MediaQuery.sizeOf(context).width < 600;
 
     return Card(
       elevation: 0,
@@ -205,7 +207,7 @@ class _FilterPanel extends StatelessWidget {
         side: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.45)),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(compact ? 10 : 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -222,54 +224,14 @@ class _FilterPanel extends StatelessWidget {
               textInputAction: TextInputAction.search,
               onChanged: onSearchChanged,
             ),
-            const SizedBox(height: 10),
-            _ServiceFilterChips(
+            SizedBox(height: compact ? 8 : 10),
+            ServiceFilterChipBar(
               services: services,
               selectedServiceId: selectedServiceId,
               onSelected: onServiceSelected,
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ServiceFilterChips extends StatelessWidget {
-  const _ServiceFilterChips({
-    required this.services,
-    required this.selectedServiceId,
-    required this.onSelected,
-  });
-
-  final List<ServiceModel> services;
-  final String? selectedServiceId;
-  final ValueChanged<String?> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: FilterChip(
-              label: const Text('All Services'),
-              selected: selectedServiceId == null || selectedServiceId!.isEmpty,
-              onSelected: (_) => onSelected(null),
-            ),
-          ),
-          for (final service in services)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Text(service.name),
-                selected: selectedServiceId == service.id,
-                onSelected: (_) => onSelected(service.id),
-              ),
-            ),
-        ],
       ),
     );
   }
@@ -417,25 +379,47 @@ class _OfferingRow extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(serviceName, style: theme.textTheme.titleSmall),
-                const SizedBox(height: 4),
-                Text(details, style: theme.textTheme.bodyMedium),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          FilledButton(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final stack = constraints.maxWidth < 340;
+          final detailsColumn = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                serviceName,
+                style: theme.textTheme.titleSmall,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              Text(details, style: theme.textTheme.bodyMedium),
+            ],
+          );
+          final bookButton = FilledButton(
             onPressed: () => context.push(AppRoutes.bookingNew(offering.id)),
             child: const Text('Book'),
-          ),
-        ],
+          );
+
+          if (stack) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                detailsColumn,
+                const SizedBox(height: 8),
+                Align(alignment: Alignment.centerRight, child: bookButton),
+              ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: detailsColumn),
+              const SizedBox(width: 8),
+              bookButton,
+            ],
+          );
+        },
       ),
     );
   }

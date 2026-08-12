@@ -10,6 +10,9 @@ class BookingModel {
     required this.sitterId,
     this.sitterServiceId,
     required this.petNameSnapshot,
+    this.petMedicalNotesSnapshot,
+    this.petBehaviourNotesSnapshot,
+    this.petCareNotesSnapshot,
     required this.serviceCodeSnapshot,
     required this.serviceNameSnapshot,
     required this.priceSnapshot,
@@ -28,6 +31,9 @@ class BookingModel {
   final String sitterId;
   final String? sitterServiceId;
   final String petNameSnapshot;
+  final String? petMedicalNotesSnapshot;
+  final String? petBehaviourNotesSnapshot;
+  final String? petCareNotesSnapshot;
   final String serviceCodeSnapshot;
   final String serviceNameSnapshot;
   final double priceSnapshot;
@@ -46,6 +52,15 @@ class BookingModel {
     final sitterId = (map['sitter_id'] as String?)?.trim() ?? '';
     final sitterServiceIdRaw = (map['sitter_service_id'] as String?)?.trim();
     final petNameSnapshot = (map['pet_name_snapshot'] as String?)?.trim() ?? '';
+    final petMedicalNotesSnapshot = _trimOrNull(
+      map['pet_medical_notes_snapshot'] as String?,
+    );
+    final petBehaviourNotesSnapshot = _trimOrNull(
+      map['pet_behaviour_notes_snapshot'] as String?,
+    );
+    final petCareNotesSnapshot = _trimOrNull(
+      map['pet_care_notes_snapshot'] as String?,
+    );
     final serviceCodeSnapshot =
         (map['service_code_snapshot'] as String?)?.trim() ?? '';
     final serviceNameSnapshot =
@@ -116,6 +131,9 @@ class BookingModel {
       sitterId: sitterId,
       sitterServiceId: sitterServiceId,
       petNameSnapshot: petNameSnapshot,
+      petMedicalNotesSnapshot: petMedicalNotesSnapshot,
+      petBehaviourNotesSnapshot: petBehaviourNotesSnapshot,
+      petCareNotesSnapshot: petCareNotesSnapshot,
       serviceCodeSnapshot: serviceCodeSnapshot,
       serviceNameSnapshot: serviceNameSnapshot,
       priceSnapshot: price,

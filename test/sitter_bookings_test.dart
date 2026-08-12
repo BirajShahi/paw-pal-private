@@ -118,6 +118,9 @@ BookingModel _booking({
   double price = 30,
   int? duration = 45,
   String? notes = 'Please keep him on the leash.',
+  String? medicalNotes,
+  String? behaviourNotes,
+  String? careNotes,
 }) {
   return BookingModel(
     id: id,
@@ -126,6 +129,9 @@ BookingModel _booking({
     sitterId: 'sitter-1',
     sitterServiceId: 'offer-1',
     petNameSnapshot: petName,
+    petMedicalNotesSnapshot: medicalNotes,
+    petBehaviourNotesSnapshot: behaviourNotes,
+    petCareNotesSnapshot: careNotes,
     serviceCodeSnapshot: 'dog_walk',
     serviceNameSnapshot: serviceName,
     priceSnapshot: price,
@@ -324,7 +330,7 @@ void main() {
       expect(find.text('Pet: Milo'), findsWidgets);
       expect(find.text(r'$30.00'), findsWidgets);
       expect(find.text('45 minutes'), findsWidgets);
-      expect(find.text('Owner notes:'), findsWidgets);
+      expect(find.text('Owner notes'), findsWidgets);
       expect(find.text('“Please keep him on the leash.”'), findsWidgets);
       expect(find.text('Waiting for your response'), findsOneWidget);
 
@@ -537,6 +543,99 @@ void main() {
       );
       expect(find.text('Accept booking?'), findsOneWidget);
       expect(bookingsLoads, greaterThan(loadsBefore));
+    });
+
+    testWidgets('shows populated pet care notes separately from owner notes', (
+      tester,
+    ) async {
+      bookings = [
+        _booking(
+          id: 'care-1',
+          medicalNotes: 'Allergic to chicken.',
+          behaviourNotes: 'Nervous around large dogs.',
+          careNotes: 'Needs fresh water available at all times.',
+          notes: 'Please use the side gate when arriving.',
+        ),
+      ];
+      await pumpScreen(tester);
+
+      expect(find.text('Pet care information'), findsOneWidget);
+      expect(find.text('Medical'), findsOneWidget);
+      expect(find.text('“Allergic to chicken.”'), findsOneWidget);
+      expect(find.text('Behaviour'), findsOneWidget);
+      expect(find.text('“Nervous around large dogs.”'), findsOneWidget);
+      expect(find.text('Care instructions'), findsOneWidget);
+      expect(
+        find.text('“Needs fresh water available at all times.”'),
+        findsOneWidget,
+      );
+      expect(find.text('Owner notes'), findsOneWidget);
+      expect(
+        find.text('“Please use the side gate when arriving.”'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('omits blank pet care note fields and empty section', (
+      tester,
+    ) async {
+      bookings = [
+        _booking(
+          id: 'care-blank',
+          medicalNotes: '   ',
+          behaviourNotes: null,
+          careNotes: 'Needs access to water.',
+          notes: null,
+        ),
+      ];
+      await pumpScreen(tester);
+
+      expect(find.text('Pet care information'), findsOneWidget);
+      expect(find.text('Care instructions'), findsOneWidget);
+      expect(find.text('“Needs access to water.”'), findsOneWidget);
+      expect(find.text('Medical'), findsNothing);
+      expect(find.text('Behaviour'), findsNothing);
+      expect(find.text('Owner notes'), findsNothing);
+    });
+
+    testWidgets('hides pet care section when all snapshots are blank', (
+      tester,
+    ) async {
+      bookings = [
+        _booking(
+          id: 'care-none',
+          medicalNotes: null,
+          behaviourNotes: '  ',
+          careNotes: '',
+          notes: 'Please keep him on the leash.',
+        ),
+      ];
+      await pumpScreen(tester);
+
+      expect(find.text('Pet care information'), findsNothing);
+      expect(find.text('Medical'), findsNothing);
+      expect(find.text('Owner notes'), findsOneWidget);
+    });
+  });
+
+  group('pet care note helpers', () {
+    test('usefulPetCareNote trims and drops blanks', () {
+      expect(usefulPetCareNote(null), isNull);
+      expect(usefulPetCareNote(''), isNull);
+      expect(usefulPetCareNote('   '), isNull);
+      expect(usefulPetCareNote('  Hello  '), 'Hello');
+    });
+
+    test('bookingHasPetCareInformation requires useful text', () {
+      expect(bookingHasPetCareInformation(_booking()), isFalse);
+      expect(
+        bookingHasPetCareInformation(_booking(careNotes: 'Needs water')),
+        isTrue,
+      );
+      expect(
+        bookingHasPetCareInformation(_booking(medicalNotes: '  ')),
+        isFalse,
+      );
     });
   });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/navigation/app_navigation.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/app_content_container.dart';
 import '../../core/widgets/app_text_field.dart';
@@ -214,7 +215,10 @@ class _CreateBookingScreenState extends ConsumerState<CreateBookingScreen> {
     final petsAsync = ref.watch(currentOwnerPetsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Request Booking')),
+      appBar: AppBar(
+        leading: appBackLeading(context, fallbackRoute: AppRoutes.sitters),
+        title: const Text('Request Booking'),
+      ),
       body: offeringAsync.when(
         loading: () => const LoadingIndicator(message: 'Loading service…'),
         error: (error, _) => ErrorMessage(

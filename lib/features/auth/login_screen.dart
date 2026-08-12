@@ -7,8 +7,10 @@ import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_content_container.dart';
 import '../../core/widgets/app_text_field.dart';
+import '../../core/widgets/auth_brand_panel.dart';
 import '../../core/widgets/error_message.dart';
 import '../../core/widgets/primary_button.dart';
+import '../../core/widgets/simple_pet_illustration.dart';
 import 'auth_providers.dart';
 import 'auth_repository.dart';
 import 'auth_role.dart';
@@ -30,6 +32,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String? _errorMessage;
 
   static final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+  static const _benefits = <(IconData, String)>[
+    (Icons.auto_awesome_outlined, 'Personalised service recommendations'),
+    (Icons.verified_outlined, 'Trusted local pet care'),
+    (Icons.event_available_outlined, 'Simple booking management'),
+  ];
 
   @override
   void dispose() {
@@ -88,49 +96,79 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.surfaceTint, AppColors.background],
-          ),
-        ),
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 900;
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final wide = constraints.maxWidth >= 1000;
 
-              return SingleChildScrollView(
+            if (wide) {
+              return AppContentContainer(
+                maxWidth: AppContentWidth.auth,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 32,
+                ),
+                alignment: Alignment.center,
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: AppContentContainer(
-                    maxWidth: wide ? 960 : AppContentWidth.form,
-                    child: wide
-                        ? Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(child: _BrandPanel(theme: theme)),
-                              const SizedBox(width: 24),
-                              Expanded(child: _buildFormCard(theme)),
-                            ],
-                          )
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              const SizedBox(height: 12),
-                              _BrandPanel(theme: theme, compact: true),
-                              const SizedBox(height: 20),
-                              _buildFormCard(theme),
-                            ],
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - 64,
+                  ),
+                  child: IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Expanded(
+                          flex: 5,
+                          child: AuthBrandPanel(
+                            headline:
+                                'Better care starts with understanding your pet.',
+                            supportingText:
+                                'Find trusted local care, get personalised '
+                                'service recommendations and manage everything '
+                                'in one place.',
+                            benefits: _benefits,
+                            illustrationKind: PetIllustrationKind.ownerWithPet,
                           ),
+                        ),
+                        const SizedBox(width: 40),
+                        Expanded(
+                          flex: 4,
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 460),
+                              child: _buildFormCard(theme),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
-            },
-          ),
+            }
+
+            return SingleChildScrollView(
+              child: AppContentContainer(
+                maxWidth: AppContentWidth.form,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const AuthBrandPanel(
+                      headline: '',
+                      supportingText: '',
+                      benefits: [],
+                      compact: true,
+                      illustrationKind: PetIllustrationKind.ownerWithPet,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildFormCard(theme),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -138,25 +176,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Widget _buildFormCard(ThemeData theme) {
     return Card(
+      elevation: 0,
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Welcome back', style: theme.textTheme.titleLarge),
-              const SizedBox(height: 4),
+              Text(
+                'Welcome back',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
               Text(
                 'Sign in to continue to PawPal.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               AppTextField(
                 controller: _emailController,
-                labelText: 'Email address',
+                labelText: 'Email',
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
                 enabled: !_isSubmitting,
@@ -171,7 +216,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               AppTextField(
                 controller: _passwordController,
                 labelText: 'Password',
@@ -200,7 +245,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               if (_errorMessage != null) ...[
                 ErrorMessage(message: _errorMessage!),
                 const SizedBox(height: 12),
@@ -221,46 +266,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _BrandPanel extends StatelessWidget {
-  const _BrandPanel({required this.theme, this.compact = false});
-
-  final ThemeData theme;
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: compact
-          ? CrossAxisAlignment.center
-          : CrossAxisAlignment.start,
-      children: [
-        Icon(
-          Icons.pets,
-          size: compact ? 40 : 56,
-          color: theme.colorScheme.primary,
-        ),
-        SizedBox(height: compact ? 8 : 16),
-        Text(
-          'PawPal',
-          style: theme.textTheme.headlineMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-            color: theme.colorScheme.primary,
-          ),
-          textAlign: compact ? TextAlign.center : TextAlign.start,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Trusted local pet care, matched to what your pet needs.',
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          textAlign: compact ? TextAlign.center : TextAlign.start,
-        ),
-      ],
     );
   }
 }

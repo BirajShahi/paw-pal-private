@@ -58,7 +58,7 @@ class PetListScreen extends ConsumerWidget {
                   'recommendations such as Full Grooming, Wash and Dry, '
                   'De-shedding and Nail Clipping.',
               actionLabel: 'Add pet',
-              onAction: () => context.go(AppRoutes.petNew),
+              onAction: () => context.push(AppRoutes.petNew),
               secondaryLabel: 'Refresh',
               onSecondary: () => ref.invalidate(currentOwnerPetsProvider),
             );
@@ -97,7 +97,7 @@ class PetListScreen extends ConsumerWidget {
                                 icon: const Icon(Icons.refresh),
                               ),
                             FilledButton.tonalIcon(
-                              onPressed: () => context.go(AppRoutes.petNew),
+                              onPressed: () => context.push(AppRoutes.petNew),
                               icon: const Icon(Icons.add),
                               label: const Text('Add'),
                             ),
@@ -117,20 +117,32 @@ class PetListScreen extends ConsumerWidget {
                               maxWidth: AppContentWidth.page,
                             ),
                             child: wide
-                                ? GridView.builder(
-                                    shrinkWrap: true,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    itemCount: pets.length,
-                                    gridDelegate:
-                                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                                          maxCrossAxisExtent: 380,
-                                          mainAxisSpacing: 12,
-                                          crossAxisSpacing: 12,
-                                          childAspectRatio: 1.55,
-                                        ),
-                                    itemBuilder: (context, index) {
-                                      return _PetCard(pet: pets[index]);
+                                ? LayoutBuilder(
+                                    builder: (context, gridConstraints) {
+                                      const maxCardWidth = 380.0;
+                                      const spacing = 12.0;
+                                      final available =
+                                          gridConstraints.maxWidth;
+                                      final columns =
+                                          (available / (maxCardWidth + spacing))
+                                              .floor()
+                                              .clamp(1, 4);
+                                      final cardWidth =
+                                          (available -
+                                              spacing * (columns - 1)) /
+                                          columns;
+
+                                      return Wrap(
+                                        spacing: spacing,
+                                        runSpacing: spacing,
+                                        children: [
+                                          for (final pet in pets)
+                                            SizedBox(
+                                              width: cardWidth,
+                                              child: _PetCard(pet: pet),
+                                            ),
+                                        ],
+                                      );
                                     },
                                   )
                                 : Column(
@@ -165,18 +177,20 @@ class _PetCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final ageLabel = PetListScreen.formatAge(pet.ageYears);
+    final ageLabel = PetListScreen.formatAge(pet.ageYears)?.trim();
     final breed = pet.breed?.trim();
+    final size = pet.size?.trim();
+    final coatType = pet.coatType?.trim();
     final chips = <String>[
-      ?ageLabel,
-      if (pet.size != null && pet.size!.isNotEmpty) pet.size!,
-      if (pet.coatType != null && pet.coatType!.isNotEmpty) pet.coatType!,
+      if (ageLabel != null && ageLabel.isNotEmpty) ageLabel,
+      if (size != null && size.isNotEmpty) size,
+      if (coatType != null && coatType.isNotEmpty) coatType,
     ];
 
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () => context.go(AppRoutes.petEdit(pet.id)),
+        onTap: () => context.push(AppRoutes.petEdit(pet.id)),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -190,6 +204,7 @@ class _PetCard extends StatelessWidget {
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(pet.name, style: theme.textTheme.titleMedium),
@@ -205,8 +220,8 @@ class _PetCard extends StatelessWidget {
                     if (chips.isNotEmpty) ...[
                       const SizedBox(height: 10),
                       Wrap(
-                        spacing: 6,
-                        runSpacing: 6,
+                        spacing: 8,
+                        runSpacing: 8,
                         children: [
                           for (final chip in chips)
                             Chip(
@@ -214,6 +229,24 @@ class _PetCard extends StatelessWidget {
                               visualDensity: VisualDensity.compact,
                               materialTapTargetSize:
                                   MaterialTapTargetSize.shrinkWrap,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 0,
+                              ),
+                              labelPadding: const EdgeInsets.symmetric(
+                                horizontal: 2,
+                              ),
+                              backgroundColor: scheme.surfaceContainerHigh,
+                              side: BorderSide(
+                                color: scheme.outlineVariant.withValues(
+                                  alpha: 0.65,
+                                ),
+                              ),
+                              labelStyle: theme.textTheme.labelMedium?.copyWith(
+                                color: scheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 12,
+                              ),
                             ),
                         ],
                       ),
@@ -223,7 +256,7 @@ class _PetCard extends StatelessWidget {
               ),
               IconButton(
                 tooltip: 'Edit',
-                onPressed: () => context.go(AppRoutes.petEdit(pet.id)),
+                onPressed: () => context.push(AppRoutes.petEdit(pet.id)),
                 icon: const Icon(Icons.edit_outlined),
               ),
             ],

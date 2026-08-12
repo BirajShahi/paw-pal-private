@@ -16,7 +16,9 @@ class BookingException implements Exception {
 
 const _bookingSelect =
     'id, owner_id, pet_id, sitter_id, sitter_service_id, '
-    'pet_name_snapshot, service_code_snapshot, service_name_snapshot, '
+    'pet_name_snapshot, pet_medical_notes_snapshot, '
+    'pet_behaviour_notes_snapshot, pet_care_notes_snapshot, '
+    'service_code_snapshot, service_name_snapshot, '
     'price_snapshot, estimated_duration_minutes, requested_start, '
     'owner_notes, status, payment_status, created_at, updated_at';
 

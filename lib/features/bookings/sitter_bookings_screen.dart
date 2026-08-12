@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/navigation/app_navigation.dart';
+import '../../core/router/app_router.dart';
 import '../../core/widgets/app_content_container.dart';
 import '../../core/widgets/error_message.dart';
 import '../../core/widgets/loading_indicator.dart';
@@ -29,6 +31,10 @@ class SitterBookingsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: appBackLeading(
+          context,
+          fallbackRoute: AppRoutes.sitterDashboard,
+        ),
         title: const Text('Booking Requests'),
         actions: [
           if (kIsWeb)
@@ -483,9 +489,13 @@ class _SitterBookingCardState extends ConsumerState<_SitterBookingCard> {
                   style: theme.textTheme.bodySmall,
                 ),
               ],
+              if (bookingHasPetCareInformation(booking)) ...[
+                const SizedBox(height: 12),
+                _PetCareInformationSection(booking: booking),
+              ],
               if (notes != null && notes.isNotEmpty) ...[
                 const SizedBox(height: 12),
-                Text('Owner notes:', style: theme.textTheme.titleSmall),
+                Text('Owner notes', style: theme.textTheme.titleSmall),
                 const SizedBox(height: 4),
                 Text(
                   '“$notes”',
@@ -539,6 +549,91 @@ class _SitterBookingCardState extends ConsumerState<_SitterBookingCard> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Owner-provided pet care notes snapped onto the booking.
+class _PetCareInformationSection extends StatelessWidget {
+  const _PetCareInformationSection({required this.booking});
+
+  final BookingModel booking;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final medical = usefulPetCareNote(booking.petMedicalNotesSnapshot);
+    final behaviour = usefulPetCareNote(booking.petBehaviourNotesSnapshot);
+    final care = usefulPetCareNote(booking.petCareNotesSnapshot);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text('Pet care information', style: theme.textTheme.titleSmall),
+        if (medical != null) ...[
+          const SizedBox(height: 8),
+          _PetCareNoteBlock(
+            icon: Icons.health_and_safety_outlined,
+            label: 'Medical',
+            note: medical,
+          ),
+        ],
+        if (behaviour != null) ...[
+          const SizedBox(height: 8),
+          _PetCareNoteBlock(
+            icon: Icons.pets_outlined,
+            label: 'Behaviour',
+            note: behaviour,
+          ),
+        ],
+        if (care != null) ...[
+          const SizedBox(height: 8),
+          _PetCareNoteBlock(
+            icon: Icons.info_outline,
+            label: 'Care instructions',
+            note: care,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _PetCareNoteBlock extends StatelessWidget {
+  const _PetCareNoteBlock({
+    required this.icon,
+    required this.label,
+    required this.note,
+  });
+
+  final IconData icon;
+  final String label;
+  final String note;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: theme.colorScheme.primary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: theme.textTheme.labelLarge),
+              const SizedBox(height: 2),
+              Text(
+                '“$note”',
+                style: theme.textTheme.bodyMedium,
+                softWrap: true,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -607,6 +702,22 @@ String sitterBookingStatusDescription(BookingStatus status) {
     BookingStatus.cancelled => 'Cancelled by the owner',
     BookingStatus.completed => 'Service completed',
   };
+}
+
+/// Trims blank owner-provided pet-care snapshot text to null.
+@visibleForTesting
+String? usefulPetCareNote(String? value) {
+  if (value == null) return null;
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
+}
+
+/// True when at least one pet-care snapshot has useful text.
+@visibleForTesting
+bool bookingHasPetCareInformation(BookingModel booking) {
+  return usefulPetCareNote(booking.petMedicalNotesSnapshot) != null ||
+      usefulPetCareNote(booking.petBehaviourNotesSnapshot) != null ||
+      usefulPetCareNote(booking.petCareNotesSnapshot) != null;
 }
 
 @visibleForTesting

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/navigation/app_navigation.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/app_content_container.dart';
 import '../../core/widgets/error_message.dart';
@@ -44,7 +45,13 @@ class SitterServicesScreen extends ConsumerWidget {
     final offeringsAsync = ref.watch(currentSitterServicesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My services')),
+      appBar: AppBar(
+        leading: appBackLeading(
+          context,
+          fallbackRoute: AppRoutes.sitterDashboard,
+        ),
+        title: const Text('My services'),
+      ),
       body: SafeArea(
         child: offeringsAsync.when(
           loading: () => const LoadingIndicator(message: 'Loading services…'),
@@ -61,7 +68,7 @@ class SitterServicesScreen extends ConsumerWidget {
             if (offerings.isEmpty) {
               return _EmptyServicesState(
                 onRefresh: () => ref.invalidate(currentSitterServicesProvider),
-                onAdd: () => context.go(AppRoutes.sitterServiceNew),
+                onAdd: () => context.push(AppRoutes.sitterServiceNew),
               );
             }
 
@@ -92,7 +99,7 @@ class SitterServicesScreen extends ConsumerWidget {
                               IconButton(
                                 tooltip: 'Add service',
                                 onPressed: () =>
-                                    context.go(AppRoutes.sitterServiceNew),
+                                    context.push(AppRoutes.sitterServiceNew),
                                 icon: const Icon(Icons.add),
                               ),
                             ],
@@ -216,7 +223,7 @@ class _ServiceOfferingCard extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            context.go(AppRoutes.sitterServiceEdit(offering.id));
+            context.push(AppRoutes.sitterServiceEdit(offering.id));
           },
           child: Padding(
             padding: const EdgeInsets.all(16),

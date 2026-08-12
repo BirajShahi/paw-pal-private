@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/navigation/app_navigation.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/app_content_container.dart';
 import '../../core/widgets/app_section.dart';
@@ -211,7 +212,10 @@ class _PetFormScreenState extends ConsumerState<PetFormScreen> {
 
   Widget _buildScaffold({required Widget body}) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.isEditing ? 'Edit pet' : 'Add pet')),
+      appBar: AppBar(
+        leading: appBackLeading(context, fallbackRoute: AppRoutes.pets),
+        title: Text(widget.isEditing ? 'Edit pet' : 'Add pet'),
+      ),
       body: SafeArea(child: body),
     );
   }

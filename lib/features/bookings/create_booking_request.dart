@@ -1,7 +1,7 @@
 /// Client payload for creating a row in `public.bookings`.
 ///
-/// Snapshots, sitter assignment, status and payment status are set by the
-/// database trigger — not by the Flutter client.
+/// Snapshots (including pet care notes), sitter assignment, status and
+/// payment status are set by the database trigger — not by the Flutter client.
 class CreateBookingRequest {
   CreateBookingRequest({
     required String petId,

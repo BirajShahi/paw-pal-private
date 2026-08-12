@@ -8,6 +8,7 @@ import '../../core/router/app_router.dart';
 import '../../core/widgets/app_empty_state.dart';
 import '../../core/widgets/error_message.dart';
 import '../../core/widgets/loading_indicator.dart';
+import '../services/service_filter_chip_bar.dart';
 import '../services/service_model.dart';
 import '../services/service_providers.dart';
 import '../services/sitter_service_model.dart';
@@ -96,12 +97,17 @@ class _SitterMapScreenState extends ConsumerState<SitterMapScreen> {
 
               return LayoutBuilder(
                 builder: (context, constraints) {
-                  final horizontalPadding = constraints.maxWidth > 600
-                      ? 32.0
+                  final horizontalPadding = constraints.maxWidth >= 1000
+                      ? 40.0
+                      : constraints.maxWidth >= 600
+                      ? 24.0
                       : 12.0;
+                  final filterReserve = constraints.maxWidth < 600
+                      ? 72.0
+                      : 100.0;
                   final mapHeight = constraints.maxHeight < 420
-                      ? constraints.maxHeight * 0.7
-                      : constraints.maxHeight - 120;
+                      ? constraints.maxHeight * 0.72
+                      : constraints.maxHeight - filterReserve;
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -124,7 +130,7 @@ class _SitterMapScreenState extends ConsumerState<SitterMapScreen> {
                                 child: Row(
                                   children: [
                                     Expanded(
-                                      child: _ServiceFilterChips(
+                                      child: ServiceFilterChipBar(
                                         services: catalogue,
                                         selectedServiceId: _selectedServiceId,
                                         onSelected: (serviceId) {
@@ -260,46 +266,6 @@ class _ProvidersMap extends StatelessWidget {
   }
 }
 
-class _ServiceFilterChips extends StatelessWidget {
-  const _ServiceFilterChips({
-    required this.services,
-    required this.selectedServiceId,
-    required this.onSelected,
-  });
-
-  final List<ServiceModel> services;
-  final String? selectedServiceId;
-  final ValueChanged<String?> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: FilterChip(
-              label: const Text('All Services'),
-              selected: selectedServiceId == null || selectedServiceId!.isEmpty,
-              onSelected: (_) => onSelected(null),
-            ),
-          ),
-          for (final service in services)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                label: Text(service.name),
-                selected: selectedServiceId == service.id,
-                onSelected: (_) => onSelected(service.id),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SitterMapDetailsSheet extends StatelessWidget {
   const _SitterMapDetailsSheet({required this.sitter});
 
@@ -318,7 +284,10 @@ class _SitterMapDetailsSheet extends StatelessWidget {
       child: Align(
         alignment: Alignment.bottomCenter,
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxSheetWidth),
+          constraints: BoxConstraints(
+            maxWidth: maxSheetWidth,
+            maxHeight: MediaQuery.sizeOf(context).height * 0.75,
+          ),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: SingleChildScrollView(
@@ -441,28 +410,50 @@ class _OfferingRow extends StatelessWidget {
         ? priceLabel
         : '$priceLabel • ${SitterServicesScreen.formatDuration(duration)}';
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(serviceName, style: theme.textTheme.titleSmall),
-              const SizedBox(height: 4),
-              Text(details, style: theme.textTheme.bodyMedium),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        FilledButton(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stack = constraints.maxWidth < 340;
+        final detailsColumn = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              serviceName,
+              style: theme.textTheme.titleSmall,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(details, style: theme.textTheme.bodyMedium),
+          ],
+        );
+        final bookButton = FilledButton(
           onPressed: () {
             Navigator.of(context).pop();
             context.push(AppRoutes.bookingNew(offering.id));
           },
           child: const Text('Book'),
-        ),
-      ],
+        );
+
+        if (stack) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              detailsColumn,
+              const SizedBox(height: 8),
+              Align(alignment: Alignment.centerRight, child: bookButton),
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: detailsColumn),
+            const SizedBox(width: 8),
+            bookButton,
+          ],
+        );
+      },
     );
   }
 }

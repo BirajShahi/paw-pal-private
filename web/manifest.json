@@ -1,11 +1,11 @@
 {
-    "name": "paw_pal",
-    "short_name": "paw_pal",
+    "name": "PawPal",
+    "short_name": "PawPal",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F4F6F5",
+    "theme_color": "#0D7377",
+    "description": "PawPal — trusted local pet care.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

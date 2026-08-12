@@ -4,8 +4,8 @@ import 'app_colors.dart';
 
 /// PawPal Material 3 theme with a friendly pet-care appearance.
 abstract final class AppTheme {
-  static const double _radius = 14;
-  static const double _radiusSm = 10;
+  static const double _radius = 18;
+  static const double _radiusSm = 12;
 
   static ThemeData get light {
     final colorScheme = ColorScheme.light(
@@ -143,8 +143,28 @@ abstract final class AppTheme {
         side: BorderSide(
           color: AppColors.outlineVariant.withValues(alpha: 0.7),
         ),
-        labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+        backgroundColor: AppColors.surfaceTint,
+        selectedColor: AppColors.secondaryContainer,
+        secondarySelectedColor: AppColors.secondaryContainer,
+        checkmarkColor: AppColors.secondaryDark,
+        // Explicit colors required: a labelStyle without color replaces M3
+        // defaults and TextPainter falls back to white on Android.
+        labelStyle: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: WidgetStateColor.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return AppColors.secondaryDark;
+            }
+            return AppColors.onSurfaceVariant;
+          }),
+        ),
+        secondaryLabelStyle: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: AppColors.secondaryDark,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
       ),
       dialogTheme: DialogThemeData(
         shape: RoundedRectangleBorder(

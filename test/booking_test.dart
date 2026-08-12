@@ -18,6 +18,9 @@ void main() {
     Object? estimatedDurationMinutes = 60,
     Object? requestedStart = '2026-08-15T10:00:00Z',
     Object? ownerNotes = 'Please use the side gate.',
+    Object? petMedicalNotesSnapshot,
+    Object? petBehaviourNotesSnapshot,
+    Object? petCareNotesSnapshot,
     Object? status = 'pending',
     Object? paymentStatus = 'unpaid',
     Object? createdAt = '2026-08-01T09:00:00Z',
@@ -30,6 +33,9 @@ void main() {
       'sitter_id': sitterId,
       'sitter_service_id': sitterServiceId,
       'pet_name_snapshot': petNameSnapshot,
+      'pet_medical_notes_snapshot': petMedicalNotesSnapshot,
+      'pet_behaviour_notes_snapshot': petBehaviourNotesSnapshot,
+      'pet_care_notes_snapshot': petCareNotesSnapshot,
       'service_code_snapshot': serviceCodeSnapshot,
       'service_name_snapshot': serviceNameSnapshot,
       'price_snapshot': priceSnapshot,
@@ -135,8 +141,42 @@ void main() {
         '2026-08-15T10:00:00.000Z',
       );
       expect(booking.ownerNotes, 'Please use the side gate.');
+      expect(booking.petMedicalNotesSnapshot, isNull);
+      expect(booking.petBehaviourNotesSnapshot, isNull);
+      expect(booking.petCareNotesSnapshot, isNull);
       expect(booking.status, BookingStatus.pending);
       expect(booking.paymentStatus, BookingPaymentStatus.unpaid);
+    });
+
+    test('maps pet care note snapshots from the booking row', () {
+      final booking = BookingModel.fromMap(
+        bookingMap(
+          petMedicalNotesSnapshot: '  Allergic to chicken.  ',
+          petBehaviourNotesSnapshot: 'Nervous around large dogs.',
+          petCareNotesSnapshot: 'Needs fresh water available at all times.',
+        ),
+      );
+
+      expect(booking.petMedicalNotesSnapshot, 'Allergic to chicken.');
+      expect(booking.petBehaviourNotesSnapshot, 'Nervous around large dogs.');
+      expect(
+        booking.petCareNotesSnapshot,
+        'Needs fresh water available at all times.',
+      );
+    });
+
+    test('converts blank pet care note snapshots to null', () {
+      final booking = BookingModel.fromMap(
+        bookingMap(
+          petMedicalNotesSnapshot: '   ',
+          petBehaviourNotesSnapshot: '',
+          petCareNotesSnapshot: null,
+        ),
+      );
+
+      expect(booking.petMedicalNotesSnapshot, isNull);
+      expect(booking.petBehaviourNotesSnapshot, isNull);
+      expect(booking.petCareNotesSnapshot, isNull);
     });
 
     test('converts numeric price with num.toDouble()', () {
@@ -230,6 +270,9 @@ void main() {
       );
       expect(insert.containsKey('sitter_id'), isFalse);
       expect(insert.containsKey('pet_name_snapshot'), isFalse);
+      expect(insert.containsKey('pet_medical_notes_snapshot'), isFalse);
+      expect(insert.containsKey('pet_behaviour_notes_snapshot'), isFalse);
+      expect(insert.containsKey('pet_care_notes_snapshot'), isFalse);
       expect(insert.containsKey('service_code_snapshot'), isFalse);
       expect(insert.containsKey('service_name_snapshot'), isFalse);
       expect(insert.containsKey('price_snapshot'), isFalse);

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/navigation/app_navigation.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/app_content_container.dart';
 import '../../core/widgets/app_section.dart';
@@ -170,7 +171,13 @@ class _AddSitterServiceScreenState
     final offeringsAsync = ref.watch(currentSitterServicesProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Add service')),
+      appBar: AppBar(
+        leading: appBackLeading(
+          context,
+          fallbackRoute: AppRoutes.sitterServices,
+        ),
+        title: const Text('Add service'),
+      ),
       body: SafeArea(
         child: catalogueAsync.when(
           loading: () => const LoadingIndicator(message: 'Loading services…'),

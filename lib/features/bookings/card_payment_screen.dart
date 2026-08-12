@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/navigation/app_navigation.dart';
 import '../../core/router/app_router.dart';
 import '../../core/widgets/app_content_container.dart';
 import '../../core/widgets/app_section.dart';
@@ -112,7 +113,10 @@ class _CardPaymentScreenState extends ConsumerState<CardPaymentScreen> {
     final bookingAsync = ref.watch(bookingByIdProvider(widget.bookingId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Payment')),
+      appBar: AppBar(
+        leading: appBackLeading(context, fallbackRoute: AppRoutes.bookings),
+        title: const Text('Payment'),
+      ),
       body: SafeArea(
         child: bookingAsync.when(
           loading: () => const LoadingIndicator(message: 'Loading booking…'),

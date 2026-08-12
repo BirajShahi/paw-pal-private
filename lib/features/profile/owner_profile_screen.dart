@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/navigation/app_navigation.dart';
+import '../../core/router/app_router.dart';
 import '../../core/widgets/app_content_container.dart';
 import '../../core/widgets/app_section.dart';
 import '../../core/widgets/app_text_field.dart';
@@ -92,7 +94,10 @@ class _OwnerProfileScreenState extends ConsumerState<OwnerProfileScreen> {
     final profileAsync = ref.watch(currentProfileProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My profile')),
+      appBar: AppBar(
+        leading: appBackLeading(context, fallbackRoute: AppRoutes.owner),
+        title: const Text('My profile'),
+      ),
       body: SafeArea(
         child: profileAsync.when(
           loading: () => const LoadingIndicator(message: 'Loading profile…'),

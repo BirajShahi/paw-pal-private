@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/navigation/app_navigation.dart';
 import '../../core/router/app_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_content_container.dart';
@@ -144,7 +145,10 @@ class _AiRecommendationScreenState
     final petsAsync = ref.watch(currentOwnerPetsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('AI Service Finder')),
+      appBar: AppBar(
+        leading: appBackLeading(context, fallbackRoute: AppRoutes.owner),
+        title: const Text('AI Service Finder'),
+      ),
       body: SafeArea(
         child: petsAsync.when(
           loading: () => const LoadingIndicator(message: 'Loading pets…'),
@@ -160,7 +164,7 @@ class _AiRecommendationScreenState
           data: (pets) {
             if (pets.isEmpty) {
               return _NoPetsEmptyState(
-                onAddPet: () => context.go(AppRoutes.petNew),
+                onAddPet: () => context.push(AppRoutes.petNew),
               );
             }
             return _buildForm(pets);

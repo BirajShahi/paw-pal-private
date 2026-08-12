@@ -26,13 +26,13 @@ class AppContentContainer extends StatelessWidget {
         final horizontal = padding != null
             ? null
             : (width >= 1100
-                  ? 32.0
+                  ? 40.0
                   : width >= 700
                   ? 24.0
                   : 16.0);
         final resolvedPadding =
             padding ??
-            EdgeInsets.symmetric(horizontal: horizontal!, vertical: 16);
+            EdgeInsets.symmetric(horizontal: horizontal!, vertical: 20);
 
         return Align(
           alignment: alignment,
@@ -49,7 +49,8 @@ class AppContentContainer extends StatelessWidget {
 /// Common max-width presets for [AppContentContainer].
 abstract final class AppContentWidth {
   static const double form = 600;
+  static const double auth = 1180;
   static const double narrow = 720;
-  static const double page = 1100;
-  static const double wide = 1200;
+  static const double page = 1200;
+  static const double wide = 1280;
 }
