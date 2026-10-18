@@ -39,6 +39,8 @@ dependencies:
   flutter_riverpod: ^3.4.2
   flutter_map: ^8.3.1
   latlong2: ^0.10.1
+  # HTTP client for the university API demo. Works on Android and web.
+  http: ^1.6.0
 
 dev_dependencies:
   flutter_test:
