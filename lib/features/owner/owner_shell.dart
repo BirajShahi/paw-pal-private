@@ -70,63 +70,72 @@ class _OwnerShellState extends ConsumerState<OwnerShell> {
     final destination = _destinations[widget.navigationShell.currentIndex];
     final wide = MediaQuery.sizeOf(context).width >= 900;
 
-    return Scaffold(
-      appBar: PawPalAppBar(
-        title: destination.label == 'Home'
-            ? 'Owner dashboard'
-            : destination.label,
-        actions: [
-          if (wide)
-            TextButton.icon(
-              onPressed: () => context.push(AppRoutes.profile),
-              icon: const Icon(Icons.person_outline, size: 20),
-              label: const Text('Profile'),
-            )
-          else
-            IconButton(
-              tooltip: 'Profile',
-              onPressed: () => context.push(AppRoutes.profile),
-              icon: const Icon(Icons.person_outline),
+    // From Pets, Sitters, Map, or Bookings, the system back button returns
+    // to Home. Back on Home leaves the app.
+    return PopScope(
+      canPop: widget.navigationShell.currentIndex == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        widget.navigationShell.goBranch(0);
+      },
+      child: Scaffold(
+        appBar: PawPalAppBar(
+          title: destination.label == 'Home'
+              ? 'Owner dashboard'
+              : destination.label,
+          actions: [
+            if (wide)
+              TextButton.icon(
+                onPressed: () => context.push(AppRoutes.profile),
+                icon: const Icon(Icons.person_outline, size: 20),
+                label: const Text('Profile'),
+              )
+            else
+              IconButton(
+                tooltip: 'Profile',
+                onPressed: () => context.push(AppRoutes.profile),
+                icon: const Icon(Icons.person_outline),
+              ),
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: wide
+                  ? TextButton(
+                      onPressed: _isLoggingOut ? null : _logOut,
+                      child: _isLoggingOut
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Log out'),
+                    )
+                  : IconButton(
+                      tooltip: 'Log out',
+                      onPressed: _isLoggingOut ? null : _logOut,
+                      icon: _isLoggingOut
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.logout),
+                    ),
             ),
-          Padding(
-            padding: const EdgeInsets.only(right: 4),
-            child: wide
-                ? TextButton(
-                    onPressed: _isLoggingOut ? null : _logOut,
-                    child: _isLoggingOut
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Log out'),
-                  )
-                : IconButton(
-                    tooltip: 'Log out',
-                    onPressed: _isLoggingOut ? null : _logOut,
-                    icon: _isLoggingOut
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.logout),
-                  ),
-          ),
-        ],
-      ),
-      body: widget.navigationShell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: widget.navigationShell.currentIndex,
-        onDestinationSelected: widget.navigationShell.goBranch,
-        destinations: [
-          for (final item in _destinations)
-            NavigationDestination(
-              icon: Icon(item.icon),
-              selectedIcon: Icon(item.selectedIcon),
-              label: item.label,
-            ),
-        ],
+          ],
+        ),
+        body: widget.navigationShell,
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: widget.navigationShell.currentIndex,
+          onDestinationSelected: widget.navigationShell.goBranch,
+          destinations: [
+            for (final item in _destinations)
+              NavigationDestination(
+                icon: Icon(item.icon),
+                selectedIcon: Icon(item.selectedIcon),
+                label: item.label,
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -190,7 +190,7 @@ class _PetCard extends StatelessWidget {
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () => context.push(AppRoutes.petEdit(pet.id)),
+        onTap: () => context.push(AppRoutes.petDetails(pet.id)),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(

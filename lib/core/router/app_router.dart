@@ -16,6 +16,7 @@ import '../../features/home/home_screen.dart';
 import '../../features/map/sitter_map_screen.dart';
 import '../../features/owner/owner_dashboard_screen.dart';
 import '../../features/owner/owner_shell.dart';
+import '../../features/pets/pet_details_screen.dart';
 import '../../features/pets/pet_form_screen.dart';
 import '../../features/pets/pet_list_screen.dart';
 import '../../features/profile/owner_profile_screen.dart';
@@ -45,6 +46,8 @@ abstract final class AppRoutes {
   static const sitterBookings = '/sitter-bookings';
   static const petNew = '/pets/new';
   static const aiRecommendation = '/ai-recommendation';
+
+  static String petDetails(String petId) => '/pets/$petId/details';
 
   static String petEdit(String petId) => '/pets/$petId/edit';
 
@@ -184,6 +187,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.petNew,
         builder: (context, state) => const PetFormScreen(),
+      ),
+      GoRoute(
+        path: '/pets/:petId/details',
+        builder: (context, state) {
+          final petId = state.pathParameters['petId']!;
+          return PetDetailsScreen(petId: petId);
+        },
       ),
       GoRoute(
         path: '/pets/:petId/edit',

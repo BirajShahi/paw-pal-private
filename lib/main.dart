@@ -20,6 +20,9 @@ Future<void> main() async {
     publishableKey: SupabaseConfig.publishableKey,
   );
 
+  // Riverpod's ProviderScope is PawPal's dependency injection container.
+  // Screens read providers such as authRepositoryProvider. Those providers
+  // create each repository once and pass in the shared Supabase client.
   runApp(const ProviderScope(child: PawPalApp()));
 }
 

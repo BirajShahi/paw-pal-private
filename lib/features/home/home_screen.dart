@@ -26,67 +26,69 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: AppContentContainer(
-            maxWidth: AppContentWidth.form,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 24),
-                Icon(Icons.pets, size: 56, color: theme.colorScheme.primary),
-                const SizedBox(height: 16),
-                Text(
-                  'PawPal',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: theme.colorScheme.primary,
+          child: SingleChildScrollView(
+            child: AppContentContainer(
+              maxWidth: AppContentWidth.form,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 24),
+                  Icon(Icons.pets, size: 56, color: theme.colorScheme.primary),
+                  const SizedBox(height: 16),
+                  Text(
+                    'PawPal',
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.primary,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Connecting pet owners with trusted sitters.',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                  const SizedBox(height: 8),
+                  Text(
+                    'Connecting pet owners with trusted sitters.',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          'Welcome to PawPal',
-                          style: theme.textTheme.titleLarge,
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Find pet care, manage bookings, and get AI-guided '
-                          'service recommendations.',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
+                  const SizedBox(height: 32),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'Welcome to PawPal',
+                            style: theme.textTheme.titleLarge,
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 24),
-                        PrimaryButton(
-                          label: 'Log in',
-                          icon: Icons.login,
-                          onPressed: () => context.go(AppRoutes.login),
-                        ),
-                        const SizedBox(height: 12),
-                        OutlinedButton(
-                          onPressed: () => context.go(AppRoutes.register),
-                          child: const Text('Register'),
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Text(
+                            'Find pet care, manage bookings, and get AI-guided '
+                            'service recommendations.',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 24),
+                          PrimaryButton(
+                            label: 'Log in',
+                            icon: Icons.login,
+                            onPressed: () => context.go(AppRoutes.login),
+                          ),
+                          const SizedBox(height: 12),
+                          OutlinedButton(
+                            onPressed: () => context.go(AppRoutes.register),
+                            child: const Text('Register'),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
