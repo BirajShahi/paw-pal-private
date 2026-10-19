@@ -25,10 +25,6 @@ import '../../features/services/edit_sitter_service_screen.dart';
 import '../../features/services/sitter_services_screen.dart';
 import '../../features/sitter/sitter_dashboard_screen.dart';
 import '../../features/sitters/sitter_discovery_screen.dart';
-import '../../features/university_api/university_api_login_screen.dart';
-import '../../features/university_api/university_entity.dart';
-import '../../features/university_api/university_entity_detail_screen.dart';
-import '../../features/university_api/university_entity_list_screen.dart';
 
 /// Application route path constants.
 abstract final class AppRoutes {
@@ -49,9 +45,6 @@ abstract final class AppRoutes {
   static const sitterBookings = '/sitter-bookings';
   static const petNew = '/pets/new';
   static const aiRecommendation = '/ai-recommendation';
-  static const universityApi = '/university-api';
-  static const universityApiEntities = '/university-api/entities';
-  static const universityApiEntity = '/university-api/entity';
 
   static String petEdit(String petId) => '/pets/$petId/edit';
 
@@ -134,28 +127,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.register,
         builder: (context, state) => const RegisterScreen(),
-      ),
-      // Separate from PawPal auth. These paths are not public, owner, or
-      // sitter routes, so the existing login redirects stay unchanged.
-      GoRoute(
-        path: AppRoutes.universityApi,
-        builder: (context, state) => const UniversityApiLoginScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.universityApiEntities,
-        builder: (context, state) {
-          final extra = state.extra;
-          final entities = extra is List<UniversityEntity> ? extra : null;
-          return UniversityEntityListScreen(entities: entities);
-        },
-      ),
-      GoRoute(
-        path: AppRoutes.universityApiEntity,
-        builder: (context, state) {
-          final extra = state.extra;
-          final entity = extra is UniversityEntity ? extra : null;
-          return UniversityEntityDetailScreen(entity: entity);
-        },
       ),
       GoRoute(
         path: AppRoutes.accountSetup,

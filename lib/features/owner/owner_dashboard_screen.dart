@@ -100,12 +100,6 @@ class OwnerDashboardScreen extends StatelessWidget {
                   );
                 },
               ),
-              const SizedBox(height: 16),
-              OutlinedButton.icon(
-                onPressed: () => context.push(AppRoutes.universityApi),
-                icon: const Icon(Icons.school_outlined),
-                label: const Text('University API Demo'),
-              ),
               const SizedBox(height: 28),
               _GettingStartedSection(wide: wide, theme: theme, scheme: scheme),
               const SizedBox(height: 24),

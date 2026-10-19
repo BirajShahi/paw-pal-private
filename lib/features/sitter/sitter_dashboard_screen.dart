@@ -185,14 +185,6 @@ class _SitterDashboardScreenState extends ConsumerState<SitterDashboardScreen> {
                       ],
                     ],
                   ),
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  onPressed: _isLoggingOut
-                      ? null
-                      : () => context.push(AppRoutes.universityApi),
-                  icon: const Icon(Icons.school_outlined),
-                  label: const Text('University API Demo'),
-                ),
                 const SizedBox(height: 28),
                 _ProfileReadySection(wide: wide, theme: theme, scheme: scheme),
                 if (_errorMessage != null) ...[
